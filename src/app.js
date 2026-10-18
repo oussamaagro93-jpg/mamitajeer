@@ -19,7 +19,9 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
-// Cloudinary serves images - no local uploads directory needed
+
+
+// Cloudinary serves images - no local uploads directory needed.
 
 app.use(limiter);
 
