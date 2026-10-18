@@ -1,0 +1,582 @@
+[
+  {
+    "wilaya_code": "01",
+    "wilaya_name": "Adrar",
+    "home_delivery_price": 800.00,
+    "desk_delivery_price": 700.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 3,
+    "estimated_delivery_days_max": 6
+  },
+  {
+    "wilaya_code": "02",
+    "wilaya_name": "Chlef",
+    "home_delivery_price": 450.00,
+    "desk_delivery_price": 350.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "03",
+    "wilaya_name": "Laghouat",
+    "home_delivery_price": 700.00,
+    "desk_delivery_price": 600.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "04",
+    "wilaya_name": "Oum El Bouaghi",
+    "home_delivery_price": 600.00,
+    "desk_delivery_price": 500.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "05",
+    "wilaya_name": "Batna",
+    "home_delivery_price": 600.00,
+    "desk_delivery_price": 500.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "06",
+    "wilaya_name": "Béjaïa",
+    "home_delivery_price": 480.00,
+    "desk_delivery_price": 380.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "07",
+    "wilaya_name": "Biskra",
+    "home_delivery_price": 680.00,
+    "desk_delivery_price": 580.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "08",
+    "wilaya_name": "Béchar",
+    "home_delivery_price": 800.00,
+    "desk_delivery_price": 700.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 3,
+    "estimated_delivery_days_max": 6
+  },
+  {
+    "wilaya_code": "09",
+    "wilaya_name": "Blida",
+    "home_delivery_price": 380.00,
+    "desk_delivery_price": 280.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 2
+  },
+  {
+    "wilaya_code": "10",
+    "wilaya_name": "Bouira",
+    "home_delivery_price": 420.00,
+    "desk_delivery_price": 320.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "11",
+    "wilaya_name": "Tamanrasset",
+    "home_delivery_price": 1300.00,
+    "desk_delivery_price": 1100.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 4,
+    "estimated_delivery_days_max": 7
+  },
+  {
+    "wilaya_code": "12",
+    "wilaya_name": "Tébessa",
+    "home_delivery_price": 650.00,
+    "desk_delivery_price": 550.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "13",
+    "wilaya_name": "Tlemcen",
+    "home_delivery_price": 700.00,
+    "desk_delivery_price": 600.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "14",
+    "wilaya_name": "Tiaret",
+    "home_delivery_price": 650.00,
+    "desk_delivery_price": 550.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "15",
+    "wilaya_name": "Tizi Ouzou",
+    "home_delivery_price": 420.00,
+    "desk_delivery_price": 320.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "16",
+    "wilaya_name": "Alger",
+    "home_delivery_price": 350.00,
+    "desk_delivery_price": 250.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 2
+  },
+  {
+    "wilaya_code": "17",
+    "wilaya_name": "Djelfa",
+    "home_delivery_price": 680.00,
+    "desk_delivery_price": 580.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "18",
+    "wilaya_name": "Jijel",
+    "home_delivery_price": 480.00,
+    "desk_delivery_price": 380.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "19",
+    "wilaya_name": "Sétif",
+    "home_delivery_price": 500.00,
+    "desk_delivery_price": 400.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "20",
+    "wilaya_name": "Saïda",
+    "home_delivery_price": 700.00,
+    "desk_delivery_price": 600.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "21",
+    "wilaya_name": "Skikda",
+    "home_delivery_price": 580.00,
+    "desk_delivery_price": 480.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "22",
+    "wilaya_name": "Sidi Bel Abbès",
+    "home_delivery_price": 700.00,
+    "desk_delivery_price": 600.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "23",
+    "wilaya_name": "Annaba",
+    "home_delivery_price": 580.00,
+    "desk_delivery_price": 480.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "24",
+    "wilaya_name": "Guelma",
+    "home_delivery_price": 600.00,
+    "desk_delivery_price": 500.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "25",
+    "wilaya_name": "Constantine",
+    "home_delivery_price": 600.00,
+    "desk_delivery_price": 500.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "26",
+    "wilaya_name": "Médéa",
+    "home_delivery_price": 420.00,
+    "desk_delivery_price": 320.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "27",
+    "wilaya_name": "Mostaganem",
+    "home_delivery_price": 650.00,
+    "desk_delivery_price": 550.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "28",
+    "wilaya_name": "M'Sila",
+    "home_delivery_price": 620.00,
+    "desk_delivery_price": 520.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "29",
+    "wilaya_name": "Mascara",
+    "home_delivery_price": 700.00,
+    "desk_delivery_price": 600.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "30",
+    "wilaya_name": "Ouargla",
+    "home_delivery_price": 750.00,
+    "desk_delivery_price": 650.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "31",
+    "wilaya_name": "Oran",
+    "home_delivery_price": 680.00,
+    "desk_delivery_price": 580.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "32",
+    "wilaya_name": "El Bayadh",
+    "home_delivery_price": 750.00,
+    "desk_delivery_price": 650.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 3,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "33",
+    "wilaya_name": "Illizi",
+    "home_delivery_price": 1400.00,
+    "desk_delivery_price": 1200.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 4,
+    "estimated_delivery_days_max": 7
+  },
+  {
+    "wilaya_code": "34",
+    "wilaya_name": "Bordj Bou Arréridj",
+    "home_delivery_price": 480.00,
+    "desk_delivery_price": 380.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "35",
+    "wilaya_name": "Boumerdès",
+    "home_delivery_price": 380.00,
+    "desk_delivery_price": 280.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 2
+  },
+  {
+    "wilaya_code": "36",
+    "wilaya_name": "El Tarf",
+    "home_delivery_price": 600.00,
+    "desk_delivery_price": 500.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "37",
+    "wilaya_name": "Tindouf",
+    "home_delivery_price": 1500.00,
+    "desk_delivery_price": 1300.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 5,
+    "estimated_delivery_days_max": 7
+  },
+  {
+    "wilaya_code": "38",
+    "wilaya_name": "Tissemsilt",
+    "home_delivery_price": 480.00,
+    "desk_delivery_price": 380.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "39",
+    "wilaya_name": "El Oued",
+    "home_delivery_price": 700.00,
+    "desk_delivery_price": 600.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "40",
+    "wilaya_name": "Khenchela",
+    "home_delivery_price": 620.00,
+    "desk_delivery_price": 520.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "41",
+    "wilaya_name": "Souk Ahras",
+    "home_delivery_price": 620.00,
+    "desk_delivery_price": 520.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "42",
+    "wilaya_name": "Tipaza",
+    "home_delivery_price": 380.00,
+    "desk_delivery_price": 280.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 2
+  },
+  {
+    "wilaya_code": "43",
+    "wilaya_name": "Mila",
+    "home_delivery_price": 500.00,
+    "desk_delivery_price": 400.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "44",
+    "wilaya_name": "Aïn Defla",
+    "home_delivery_price": 450.00,
+    "desk_delivery_price": 350.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 1,
+    "estimated_delivery_days_max": 3
+  },
+  {
+    "wilaya_code": "45",
+    "wilaya_name": "Naâma",
+    "home_delivery_price": 750.00,
+    "desk_delivery_price": 650.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 3,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "46",
+    "wilaya_name": "Aïn Témouchent",
+    "home_delivery_price": 700.00,
+    "desk_delivery_price": 600.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "47",
+    "wilaya_name": "Ghardaïa",
+    "home_delivery_price": 750.00,
+    "desk_delivery_price": 650.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "48",
+    "wilaya_name": "Relizane",
+    "home_delivery_price": 650.00,
+    "desk_delivery_price": 550.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 4
+  },
+  {
+    "wilaya_code": "49",
+    "wilaya_name": "Timimoun",
+    "home_delivery_price": 900.00,
+    "desk_delivery_price": 750.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 3,
+    "estimated_delivery_days_max": 6
+  },
+  {
+    "wilaya_code": "50",
+    "wilaya_name": "Bordj Badji Mokhtar",
+    "home_delivery_price": 1500.00,
+    "desk_delivery_price": 1300.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 5,
+    "estimated_delivery_days_max": 7
+  },
+  {
+    "wilaya_code": "51",
+    "wilaya_name": "Ouled Djellal",
+    "home_delivery_price": 750.00,
+    "desk_delivery_price": 650.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "52",
+    "wilaya_name": "Béni Abbès",
+    "home_delivery_price": 900.00,
+    "desk_delivery_price": 750.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 3,
+    "estimated_delivery_days_max": 6
+  },
+  {
+    "wilaya_code": "53",
+    "wilaya_name": "In Salah",
+    "home_delivery_price": 1200.00,
+    "desk_delivery_price": 1000.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 4,
+    "estimated_delivery_days_max": 7
+  },
+  {
+    "wilaya_code": "54",
+    "wilaya_name": "In Guezzam",
+    "home_delivery_price": 1500.00,
+    "desk_delivery_price": 1300.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 5,
+    "estimated_delivery_days_max": 7
+  },
+  {
+    "wilaya_code": "55",
+    "wilaya_name": "Touggourt",
+    "home_delivery_price": 720.00,
+    "desk_delivery_price": 620.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "56",
+    "wilaya_name": "Djanet",
+    "home_delivery_price": 1400.00,
+    "desk_delivery_price": 1200.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 4,
+    "estimated_delivery_days_max": 7
+  },
+  {
+    "wilaya_code": "57",
+    "wilaya_name": "El M'Ghair",
+    "home_delivery_price": 720.00,
+    "desk_delivery_price": 620.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 2,
+    "estimated_delivery_days_max": 5
+  },
+  {
+    "wilaya_code": "58",
+    "wilaya_name": "El Meniaa",
+    "home_delivery_price": 780.00,
+    "desk_delivery_price": 680.00,
+    "home_delivery_available": true,
+    "desk_delivery_available": true,
+    "estimated_delivery_days_min": 3,
+    "estimated_delivery_days_max": 6
+  }
+]

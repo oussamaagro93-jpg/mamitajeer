@@ -1,0 +1,12 @@
+
+
+git remote set-url origin https://github.com/alasqlto62/store4backend.git
+git fetch origin
+git stash
+git pull origin main
+
+
+
+git add . 
+git commit -m "Add Cloudinary configuration and run migrations"
+git push origin main 

@@ -1,0 +1,19 @@
+node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+src/logs/
+
+# Local uploads (images are served from Cloudinary in production)
+uploads/
+
+# Build output
+dist/
+
+# Vercel
+.vercel

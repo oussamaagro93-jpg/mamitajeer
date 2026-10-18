@@ -1,0 +1,5 @@
+
+
+npm run migration
+npm run seed
+node .
