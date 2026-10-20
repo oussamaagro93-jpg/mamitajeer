@@ -12,8 +12,10 @@ router.post(
     body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
     body('guestName').trim().notEmpty().withMessage('Full name is required'),
     body('guestPhone').trim().notEmpty().withMessage('Phone number is required'),
-    body('guestWilaya').trim().notEmpty().withMessage('Wilaya is required'),
-    body('guestCity').trim().notEmpty().withMessage('City is required'),
+    // Wilaya/city names are resolved from wilayaId/communeId on the server.
+    // They stay optional here for backwards compatibility with older clients.
+    body('guestWilaya').optional({ checkFalsy: true, nullable: true }).trim(),
+    body('guestCity').optional({ checkFalsy: true, nullable: true }).trim(),
     body('guestAddress').trim().notEmpty().withMessage('Address is required'),
     body('wilayaId').isInt().withMessage('Valid wilaya is required'),
     body('communeId').isInt().withMessage('Valid commune is required'),

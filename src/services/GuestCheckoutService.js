@@ -1,4 +1,4 @@
-const { Order, OrderItem, OrderTimeline, Product, ProductImage, Wilaya, Commune, DeliveryCompany } = require('../models');
+const { Order, OrderItem, OrderTimeline, Product, ProductImage, Wilaya, Commune } = require('../models');
 const { sequelize } = require('../models');
 const ApiError = require('../utils/ApiError');
 const shippingRateService = require('./ShippingRateService');
@@ -11,9 +11,26 @@ class GuestCheckoutService {
     if (!items || !items.length) {
       throw new ApiError(400, 'At least one item is required');
     }
-    if (!guestName || !guestPhone || !guestWilaya || !guestCity || !guestAddress) {
-      throw new ApiError(400, 'All guest customer fields are required');
+    if (!guestName || !guestPhone || !guestAddress) {
+      throw new ApiError(400, 'Full name, phone and address are required');
     }
+    if (!wilayaId || !communeId) {
+      throw new ApiError(400, 'Wilaya and commune are required');
+    }
+
+    // Resolve location names server-side so the client cannot send mismatched values
+    const wilaya = await Wilaya.findByPk(wilayaId);
+    if (!wilaya) throw new ApiError(400, 'Wilaya not found');
+
+    const commune = await Commune.findByPk(communeId);
+    if (!commune) throw new ApiError(400, 'Commune not found');
+
+    if (parseInt(commune.wilayaId, 10) !== parseInt(wilayaId, 10)) {
+      throw new ApiError(400, 'Selected commune does not belong to the selected wilaya');
+    }
+
+    const wilayaName = guestWilaya || wilaya.nameFr;
+    const cityName = guestCity || commune.nameFr;
 
     const productIds = items.map(function (i) { return i.productId; });
     const products = await Product.findAll({
@@ -69,11 +86,6 @@ class GuestCheckoutService {
 
     const shippingCost = quote.price;
 
-    // Get names for snapshot
-    const wilaya = await Wilaya.findByPk(wilayaId);
-    const commune = await Commune.findByPk(communeId);
-    const company = await DeliveryCompany.findByPk(deliveryCompanyId);
-
     const total = subtotal + shippingCost;
 
     const now = new Date();
@@ -103,8 +115,8 @@ class GuestCheckoutService {
           shippingStatus: 'not_shipped',
           guestName: guestName,
           guestPhone: guestPhone,
-          guestWilaya: guestWilaya,
-          guestCity: guestCity,
+          guestWilaya: wilayaName,
+          guestCity: cityName,
           guestAddress: guestAddress,
           notes: notes || null,
           // Structured delivery snapshot
@@ -112,9 +124,9 @@ class GuestCheckoutService {
           deliveryCompanyName: quote.deliveryCompanyName,
           deliveryType: deliveryType,
           wilayaId: wilayaId,
-          wilayaName: wilaya ? wilaya.nameFr : guestWilaya,
+          wilayaName: wilaya.nameFr,
           communeId: communeId,
-          communeName: commune ? commune.nameFr : guestCity,
+          communeName: commune.nameFr,
           deliveryAddress: guestAddress,
         },
         { transaction: t },
@@ -180,8 +192,8 @@ class GuestCheckoutService {
         ph: guestPhone,
         fn: guestName.split(' ')[0] || guestName,
         ln: guestName.split(' ').slice(1).join(' ') || '',
-        ct: guestCity,
-        st: guestWilaya,
+        ct: cityName,
+        st: wilayaName,
         country: 'DZ',
       },
       custom_data: {
