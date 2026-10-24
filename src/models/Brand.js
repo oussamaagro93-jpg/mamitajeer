@@ -3,15 +3,14 @@ module.exports = (sequelize, DataTypes) => {
     'Brand',
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      adminId: { type: DataTypes.INTEGER, allowNull: true },
       name: {
         type: DataTypes.STRING(200),
         allowNull: false,
-        unique: true,
       },
       slug: {
         type: DataTypes.STRING(200),
         allowNull: false,
-        unique: true,
       },
       description: {
         type: DataTypes.TEXT,
@@ -32,7 +31,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       tableName: 'brands',
-      indexes: [{ unique: true, fields: ['slug'] }],
+      indexes: [
+        { unique: true, fields: ['admin_id', 'name'], where: { deleted_at: null } },
+        { unique: true, fields: ['admin_id', 'slug'], where: { deleted_at: null } },
+      ],
     },
   );
 

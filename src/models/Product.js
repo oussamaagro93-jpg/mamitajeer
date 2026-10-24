@@ -10,17 +10,14 @@ module.exports = (sequelize, DataTypes) => {
       sku: {
         type: DataTypes.STRING(100),
         allowNull: false,
-        unique: true,
       },
       barcode: {
         type: DataTypes.STRING(100),
         allowNull: true,
-        unique: true,
       },
       slug: {
         type: DataTypes.STRING(300),
         allowNull: false,
-        unique: true,
       },
       description: {
         type: DataTypes.TEXT,
@@ -35,6 +32,14 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
       },
       brandId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      deliveryCompanyId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      adminId: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
@@ -135,8 +140,9 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: 'products',
       indexes: [
-        { unique: true, fields: ['sku'] },
-        { unique: true, fields: ['slug'] },
+        { unique: true, fields: ['admin_id', 'sku'], where: { deleted_at: null } },
+        { unique: true, fields: ['admin_id', 'barcode'], where: { deleted_at: null } },
+        { unique: true, fields: ['slug'], where: { deleted_at: null } },
         { fields: ['category_id'] },
         { fields: ['brand_id'] },
         { fields: ['status'] },
@@ -148,6 +154,7 @@ module.exports = (sequelize, DataTypes) => {
   Product.associate = (models) => {
     Product.belongsTo(models.Category, { foreignKey: 'categoryId', as: 'category' });
     Product.belongsTo(models.Brand, { foreignKey: 'brandId', as: 'brand' });
+    Product.belongsTo(models.DeliveryCompany, { foreignKey: 'deliveryCompanyId', as: 'deliveryCompany' });
     Product.hasMany(models.ProductImage, { foreignKey: 'productId', as: 'images', order: [['sortOrder', 'ASC']] });
     Product.hasMany(models.ProductVariant, { foreignKey: 'productId', as: 'variants' });
     Product.hasMany(models.Review, { foreignKey: 'productId', as: 'reviews' });

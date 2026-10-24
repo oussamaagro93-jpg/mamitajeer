@@ -9,9 +9,22 @@ const errorHandler = (err, req, res, _next) => {
     return sendError(res, err.message, err.statusCode, err.errors);
   }
 
-  if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
-    const errors = err.errors.map((e) => ({ field: e.path, message: e.message }));
+  if (err.name === 'SequelizeValidationError') {
+    const errors = (err.errors || []).map((e) => ({ field: e.path, message: e.message }));
     return sendError(res, 'Validation error', 400, errors);
+  }
+
+  if (err.name === 'SequelizeUniqueConstraintError') {
+    const errors = (err.errors || []).map((e) => ({ field: e.path, message: e.message }));
+    const fields = err.fields || {};
+    const isEmail = errors.some((e) => e.field === 'email')
+      || Object.prototype.hasOwnProperty.call(fields, 'email');
+    return sendError(
+      res,
+      isEmail ? 'Email already registered' : 'A record with these details already exists',
+      400,
+      errors,
+    );
   }
 
   if (err.name === 'SequelizeForeignKeyConstraintError') {

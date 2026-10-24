@@ -3,8 +3,9 @@ module.exports = (sequelize, DataTypes) => {
     'Warehouse',
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      adminId: { type: DataTypes.INTEGER, allowNull: true },
       name: { type: DataTypes.STRING(200), allowNull: false },
-      code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+      code: { type: DataTypes.STRING(50), allowNull: false },
       address: { type: DataTypes.TEXT, allowNull: true },
       city: { type: DataTypes.STRING(100), allowNull: true },
       state: { type: DataTypes.STRING(100), allowNull: true },
@@ -13,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
       email: { type: DataTypes.STRING(255), allowNull: true },
       isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
     },
-    { tableName: 'warehouses', indexes: [{ unique: true, fields: ['code'] }] },
+    { tableName: 'warehouses', indexes: [{ unique: true, fields: ['admin_id', 'code'], where: { deleted_at: null } }] },
   );
 
   Warehouse.associate = (models) => {

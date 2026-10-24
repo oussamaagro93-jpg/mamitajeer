@@ -4,7 +4,7 @@ const { sendSuccess } = require('../utils/response');
 class CustomerController {
   async index(req, res, next) {
     try {
-      const data = await customerService.findAll(req.query);
+      const data = await customerService.findAll(req.query, req.tenantAdminId);
       sendSuccess(res, data);
     } catch (error) {
       next(error);
@@ -13,7 +13,7 @@ class CustomerController {
 
   async show(req, res, next) {
     try {
-      const customer = await customerService.findById(req.params.id);
+      const customer = await customerService.findById(req.params.id, req.tenantAdminId);
       sendSuccess(res, { customer });
     } catch (error) {
       next(error);
@@ -22,7 +22,7 @@ class CustomerController {
 
   async update(req, res, next) {
     try {
-      const customer = await customerService.update(req.params.id, req.body);
+      const customer = await customerService.update(req.params.id, req.body, req.tenantAdminId);
       sendSuccess(res, { customer }, 'Customer updated');
     } catch (error) {
       next(error);
@@ -31,7 +31,7 @@ class CustomerController {
 
   async delete(req, res, next) {
     try {
-      await customerService.delete(req.params.id);
+      await customerService.delete(req.params.id, req.tenantAdminId);
       sendSuccess(res, null, 'Customer deleted');
     } catch (error) {
       next(error);

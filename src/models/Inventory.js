@@ -3,6 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     'Inventory',
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      adminId: { type: DataTypes.INTEGER, allowNull: true },
       productId: { type: DataTypes.INTEGER, allowNull: false },
       variantId: { type: DataTypes.INTEGER, allowNull: true },
       warehouseId: { type: DataTypes.INTEGER, allowNull: false },

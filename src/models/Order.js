@@ -3,6 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     'Order',
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      adminId: { type: DataTypes.INTEGER, allowNull: true },
       orderNumber: { type: DataTypes.STRING(50), allowNull: false, unique: true },
       userId: { type: DataTypes.INTEGER, allowNull: true },
       email: { type: DataTypes.STRING(255), allowNull: true },
@@ -22,7 +23,9 @@ module.exports = (sequelize, DataTypes) => {
       shippingCost: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
       taxAmount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
       discountAmount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+      couponId: { type: DataTypes.INTEGER, allowNull: true },
       couponCode: { type: DataTypes.STRING(50), allowNull: true },
+      stockRestored: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       total: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
       paidAmount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
       dueAmount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
@@ -73,6 +76,7 @@ module.exports = (sequelize, DataTypes) => {
     Order.belongsTo(models.DeliveryCompany, { foreignKey: 'deliveryCompanyId', as: 'deliveryCompany' });
     Order.belongsTo(models.Wilaya, { foreignKey: 'wilayaId', as: 'wilaya' });
     Order.belongsTo(models.Commune, { foreignKey: 'communeId', as: 'commune' });
+    Order.belongsTo(models.Coupon, { foreignKey: 'couponId', as: 'coupon' });
   };
 
   return Order;

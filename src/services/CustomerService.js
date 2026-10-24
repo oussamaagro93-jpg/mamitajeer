@@ -1,12 +1,13 @@
 const { User, Address, Order, Review, WishlistItem } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { paginate, getPaginationMeta } = require('../utils/helpers');
+const { tenantWhere } = require('../utils/tenant');
 
 class CustomerService {
-  async findAll(query) {
+  async findAll(query, tenantId) {
     const { page, limit, offset } = paginate(query);
     const { search } = query;
-    const where = { role: 'customer' };
+    const where = tenantWhere(tenantId, { role: 'customer' });
     if (search) {
       const { Op } = require('sequelize');
       where[Op.or] = [
@@ -19,8 +20,9 @@ class CustomerService {
     return { customers: result.rows, pagination: getPaginationMeta(result.count, page, limit) };
   }
 
-  async findById(id) {
-    const customer = await User.findByPk(id, {
+  async findById(id, tenantId) {
+    const customer = await User.findOne({
+      where: tenantWhere(tenantId, { id, role: 'customer' }),
       include: [
         { model: Address, as: 'addresses' },
         { model: Order, as: 'orders', limit: 10, order: [['createdAt', 'DESC']] },
@@ -31,18 +33,21 @@ class CustomerService {
     return customer;
   }
 
-  async update(id, data) {
-    const customer = await User.findByPk(id);
+  async update(id, data, tenantId) {
+    const customer = await User.findOne({ where: tenantWhere(tenantId, { id, role: 'customer' }) });
     if (!customer) throw new ApiError(404, 'Customer not found');
+    delete data.role;
+    delete data.adminId;
+    delete data.permissions;
     return customer.update(data);
   }
 
-  async delete(id) {
-    const customer = await User.findByPk(id);
+  async delete(id, tenantId) {
+    const customer = await User.findOne({ where: tenantWhere(tenantId, { id, role: 'customer' }) });
     if (!customer) throw new ApiError(404, 'Customer not found');
     await Address.destroy({ where: { userId: id } });
     await Review.destroy({ where: { userId: id } });
-    await Order.update({ userId: null }, { where: { userId: id } });
+    await Order.update({ userId: null }, { where: { userId: id, adminId: customer.adminId } });
     await customer.destroy();
     return true;
   }

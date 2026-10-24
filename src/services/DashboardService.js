@@ -41,17 +41,26 @@ class DashboardService {
     };
   }
 
-  async getStats() {
-    const totalRevenue = await Order.sum('total', { where: { status: { [Op.notIn]: ['cancelled', 'refunded'] } } }) || 0;
-    const totalOrders = await Order.count();
-    const totalCustomers = await User.count({ where: { role: 'customer' } });
-    const totalProducts = await Product.count({ where: { status: 'published' } });
-    const pendingOrders = await Order.count({ where: { status: 'pending' } });
-    const lowStockProducts = await Product.count({ where: { quantity: { [Op.lte]: literal('low_stock_threshold') } } });
-    const totalReviews = await Review.count();
-    const totalRevenueToday = await Order.sum('total', { where: { createdAt: { [Op.gte]: new Date(new Date().setHours(0, 0, 0, 0)) }, status: { [Op.notIn]: ['cancelled', 'refunded'] } } }) || 0;
+  async getStats(tenantId) {
+    const orderWhere = tenantId ? { adminId: tenantId } : {};
+    const productWhere = tenantId ? { adminId: tenantId } : {};
+    const customerWhere = tenantId ? { adminId: tenantId, role: 'customer' } : { role: 'customer' };
+
+    const totalRevenue = await Order.sum('total', { where: { ...orderWhere, status: { [Op.notIn]: ['cancelled', 'refunded'] } } }) || 0;
+    const totalOrders = await Order.count({ where: orderWhere });
+    const totalCustomers = await User.count({ where: customerWhere });
+    const totalProducts = await Product.count({ where: { ...productWhere, status: 'published' } });
+    const pendingOrders = await Order.count({ where: { ...orderWhere, status: 'pending' } });
+    const lowStockProducts = await Product.count({ where: { ...productWhere, quantity: { [Op.lte]: literal('low_stock_threshold') } } });
+    const totalReviews = tenantId
+      ? await Review.count({
+          include: [{ model: Product, as: 'product', where: { adminId: tenantId }, required: true }],
+        })
+      : await Review.count();
+    const totalRevenueToday = await Order.sum('total', { where: { ...orderWhere, createdAt: { [Op.gte]: new Date(new Date().setHours(0, 0, 0, 0)) }, status: { [Op.notIn]: ['cancelled', 'refunded'] } } }) || 0;
 
     const recentOrders = await Order.findAll({
+      where: orderWhere,
       limit: 10,
       order: [['createdAt', 'DESC']],
       include: [{ model: User, as: 'user', attributes: ['firstName', 'lastName', 'email'] }],
@@ -60,7 +69,7 @@ class DashboardService {
     const topProducts = await Product.findAll({
       limit: 10,
       order: [['quantity', 'DESC']],
-      where: { status: 'published' },
+      where: { ...productWhere, status: 'published' },
     });
 
     return {
@@ -77,7 +86,7 @@ class DashboardService {
     };
   }
 
-  async getRevenueChart(days = 30) {
+  async getRevenueChart(days = 30, tenantId) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -88,6 +97,7 @@ class DashboardService {
         [fn('COUNT', col('id')), 'orders'],
       ],
       where: {
+        ...(tenantId ? { adminId: tenantId } : {}),
         createdAt: { [Op.gte]: startDate },
         status: { [Op.notIn]: ['cancelled', 'refunded'] },
       },
@@ -99,9 +109,10 @@ class DashboardService {
     return data;
   }
 
-  async getOrderStatusDistribution() {
+  async getOrderStatusDistribution(tenantId) {
     const data = await Order.findAll({
       attributes: ['status', [fn('COUNT', col('id')), 'count']],
+      where: tenantId ? { adminId: tenantId } : {},
       group: ['status'],
       raw: true,
     });

@@ -21,6 +21,10 @@ const createSlug = (text) => {
   return slugify(text, { lower: true, strict: true });
 };
 
+const roundMoney = (value) => {
+  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+};
+
 const sanitizeHtml = (text) => {
   return text
     .replace(/&/g, '&amp;')
@@ -52,6 +56,7 @@ module.exports = {
   generateSKU,
   generateBarcode,
   createSlug,
+  roundMoney,
   sanitizeHtml,
   paginate,
   getPaginationMeta,

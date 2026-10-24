@@ -4,7 +4,7 @@ const { sendSuccess } = require('../utils/response');
 class CouponController {
   async index(req, res, next) {
     try {
-      const data = await couponService.findAll(req.query);
+      const data = await couponService.findAll(req.query, req.tenantAdminId);
       sendSuccess(res, data);
     } catch (error) {
       next(error);
@@ -13,7 +13,7 @@ class CouponController {
 
   async show(req, res, next) {
     try {
-      const coupon = await couponService.findById(req.params.id);
+      const coupon = await couponService.findById(req.params.id, req.tenantAdminId);
       sendSuccess(res, { coupon });
     } catch (error) {
       next(error);
@@ -22,7 +22,7 @@ class CouponController {
 
   async create(req, res, next) {
     try {
-      const coupon = await couponService.create(req.body);
+      const coupon = await couponService.create(req.body, req.tenantAdminId);
       sendSuccess(res, { coupon }, 'Coupon created', 201);
     } catch (error) {
       next(error);
@@ -31,7 +31,7 @@ class CouponController {
 
   async update(req, res, next) {
     try {
-      const coupon = await couponService.update(req.params.id, req.body);
+      const coupon = await couponService.update(req.params.id, req.body, req.tenantAdminId);
       sendSuccess(res, { coupon }, 'Coupon updated');
     } catch (error) {
       next(error);
@@ -40,7 +40,7 @@ class CouponController {
 
   async delete(req, res, next) {
     try {
-      await couponService.delete(req.params.id);
+      await couponService.delete(req.params.id, req.tenantAdminId);
       sendSuccess(res, null, 'Coupon deleted');
     } catch (error) {
       next(error);
@@ -49,8 +49,7 @@ class CouponController {
 
   async validate(req, res, next) {
     try {
-      const { code, orderAmount } = req.body;
-      const result = await couponService.validate(code, orderAmount);
+      const result = await couponService.validateForCart(req.body);
       sendSuccess(res, result, 'Coupon is valid');
     } catch (error) {
       next(error);

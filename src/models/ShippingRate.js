@@ -3,6 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     'ShippingRate',
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      adminId: { type: DataTypes.INTEGER, allowNull: true },
       deliveryCompanyId: { type: DataTypes.INTEGER, allowNull: false },
       wilayaId: { type: DataTypes.INTEGER, allowNull: false },
       homeDeliveryPrice: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },

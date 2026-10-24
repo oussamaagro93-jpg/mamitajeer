@@ -2,16 +2,21 @@ const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
 const inventoryController = require('../controllers/InventoryController');
-const { authenticate, authorize } = require('../middleware/authenticate');
+const { authenticate } = require('../middleware/authenticate');
+const { tenantContext } = require('../middleware/tenant');
+const { requirePermission } = require('../middleware/permissions');
+const { PERMISSIONS } = require('../config/permissions');
 const validate = require('../middleware/validate');
 
-router.get('/', authenticate, inventoryController.index);
-router.get('/low-stock', authenticate, inventoryController.lowStock);
+const staff = [authenticate, tenantContext];
+
+router.get('/', staff, requirePermission(PERMISSIONS.INVENTORY_VIEW), inventoryController.index);
+router.get('/low-stock', staff, requirePermission(PERMISSIONS.INVENTORY_VIEW), inventoryController.lowStock);
 
 router.post(
   '/adjust',
-  authenticate,
-  authorize('super_admin', 'admin', 'manager'),
+  staff,
+  requirePermission(PERMISSIONS.INVENTORY_UPDATE),
   [
     body('productId').notEmpty().withMessage('Product ID is required'),
     body('warehouseId').notEmpty().withMessage('Warehouse ID is required'),
@@ -24,8 +29,8 @@ router.post(
 
 router.post(
   '/transfer',
-  authenticate,
-  authorize('super_admin', 'admin', 'manager'),
+  staff,
+  requirePermission(PERMISSIONS.INVENTORY_UPDATE),
   [
     body('productId').notEmpty().withMessage('Product ID is required'),
     body('fromWarehouseId').notEmpty().withMessage('Source warehouse ID is required'),
@@ -36,9 +41,25 @@ router.post(
   inventoryController.transfer,
 );
 
-router.delete('/:id', authenticate, authorize('super_admin', 'admin'), inventoryController.delete);
+router.delete(
+  '/:id',
+  staff,
+  requirePermission(PERMISSIONS.INVENTORY_DELETE),
+  inventoryController.delete,
+);
 
-router.post('/', authenticate, authorize('super_admin', 'admin', 'manager'), inventoryController.create);
-router.put('/:id', authenticate, authorize('super_admin', 'admin', 'manager'), inventoryController.update);
+router.post(
+  '/',
+  staff,
+  requirePermission(PERMISSIONS.INVENTORY_CREATE),
+  inventoryController.create,
+);
+
+router.put(
+  '/:id',
+  staff,
+  requirePermission(PERMISSIONS.INVENTORY_UPDATE),
+  inventoryController.update,
+);
 
 module.exports = router;

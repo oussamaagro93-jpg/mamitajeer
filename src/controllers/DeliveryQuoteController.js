@@ -24,11 +24,15 @@ class DeliveryQuoteController {
 
   async getShippingOptions(req, res, next) {
     try {
-      const { wilayaId, communeId } = req.query;
+      const { wilayaId, communeId, deliveryCompanyId } = req.query;
       if (!wilayaId) {
         return sendSuccess(res, { options: [] });
       }
-      const options = await shippingRateService.getAvailableOptions(wilayaId, communeId || null);
+      const options = await shippingRateService.getAvailableOptions(
+        wilayaId,
+        communeId || null,
+        deliveryCompanyId || null,
+      );
       sendSuccess(res, { options });
     } catch (error) {
       next(error);

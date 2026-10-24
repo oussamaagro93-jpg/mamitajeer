@@ -3,7 +3,8 @@ module.exports = (sequelize, DataTypes) => {
     'Coupon',
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-      code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+      adminId: { type: DataTypes.INTEGER, allowNull: true },
+      code: { type: DataTypes.STRING(50), allowNull: false },
       type: { type: DataTypes.ENUM('percentage', 'fixed', 'free_shipping'), allowNull: false },
       value: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
       minOrderAmount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
@@ -16,12 +17,28 @@ module.exports = (sequelize, DataTypes) => {
       isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
       description: { type: DataTypes.TEXT, allowNull: true },
     },
-    { tableName: 'coupons', indexes: [{ unique: true, fields: ['code'] }, { fields: ['is_active'] }] },
+    {
+      tableName: 'coupons',
+      indexes: [
+        { unique: true, fields: ['admin_id', 'code'], where: { deleted_at: null } },
+        { fields: ['is_active'] },
+      ],
+    },
   );
 
   Coupon.associate = (models) => {
-    Coupon.belongsToMany(models.Product, { through: 'CouponProducts', foreignKey: 'couponId', as: 'products' });
-    Coupon.belongsToMany(models.Category, { through: 'CouponCategories', foreignKey: 'couponId', as: 'categories' });
+    Coupon.belongsToMany(models.Product, {
+      through: models.CouponProduct,
+      foreignKey: 'couponId',
+      otherKey: 'productId',
+      as: 'products',
+    });
+    Coupon.belongsToMany(models.Category, {
+      through: models.CouponCategory,
+      foreignKey: 'couponId',
+      otherKey: 'categoryId',
+      as: 'categories',
+    });
   };
 
   return Coupon;

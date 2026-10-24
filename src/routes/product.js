@@ -2,18 +2,28 @@ const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
 const productController = require('../controllers/ProductController');
-const { authenticate, authorize } = require('../middleware/authenticate');
+const { authenticate } = require('../middleware/authenticate');
+const optionalAuthenticate = require('../middleware/optionalAuthenticate');
+const { tenantContext } = require('../middleware/tenant');
+const { requirePermission } = require('../middleware/permissions');
+const { PERMISSIONS } = require('../config/permissions');
 const validate = require('../middleware/validate');
 const uploadProductImage = require('../middleware/uploadProductImage');
 
-router.get('/', productController.index);
+const staff = [authenticate, tenantContext];
+
+// Public catalogue. When a staff token is present the list is scoped to their
+// admin tenant so the admin UI does not need a separate endpoint.
+router.get('/', optionalAuthenticate, productController.index);
 router.get('/slug/:slug', productController.showPublicBySlug);
-router.get('/:id', productController.show);
+
+// Admin product details are tenant-scoped.
+router.get('/:id', staff, requirePermission(PERMISSIONS.PRODUCTS_VIEW), productController.show);
 
 router.post(
   '/',
-  authenticate,
-  authorize('super_admin', 'admin', 'manager'),
+  staff,
+  requirePermission(PERMISSIONS.PRODUCTS_CREATE),
   [
     body('name').trim().notEmpty().withMessage('Product name is required'),
     body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
@@ -24,52 +34,51 @@ router.post(
 
 router.put(
   '/:id',
-  authenticate,
-  authorize('super_admin', 'admin', 'manager'),
+  staff,
+  requirePermission(PERMISSIONS.PRODUCTS_UPDATE),
   productController.update,
 );
 
 router.delete(
   '/:id',
-  authenticate,
-  authorize('super_admin', 'admin'),
+  staff,
+  requirePermission(PERMISSIONS.PRODUCTS_DELETE),
   productController.delete,
 );
 
-// Multi-image upload endpoint - accepts array of files under 'images' field
 router.post(
   '/:id/images',
-  authenticate,
-  authorize('super_admin', 'admin', 'manager'),
+  staff,
+  requirePermission(PERMISSIONS.PRODUCTS_UPDATE),
   uploadProductImage.array('images', 10),
   productController.uploadImages,
 );
 
 router.put(
   '/:id/images/:imageId',
-  authenticate,
-  authorize('super_admin', 'admin', 'manager'),
+  staff,
+  requirePermission(PERMISSIONS.PRODUCTS_UPDATE),
   productController.updateImage,
 );
 
 router.delete(
   '/:id/images/:imageId',
-  authenticate,
-  authorize('super_admin', 'admin'),
+  staff,
+  requirePermission(PERMISSIONS.PRODUCTS_DELETE),
   productController.deleteImage,
 );
 
 router.get(
   '/:id/related',
-  authenticate,
-  authorize('super_admin', 'admin', 'manager'),
+  staff,
+  requirePermission(PERMISSIONS.PRODUCTS_VIEW),
   productController.getRelated,
 );
 
 router.put(
   '/:id/related',
-  authenticate,
-  authorize('super_admin', 'admin', 'manager'),
+  staff,
+  requirePermission(PERMISSIONS.PRODUCTS_UPDATE),
   productController.setRelated,
 );
 

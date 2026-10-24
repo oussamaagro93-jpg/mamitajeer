@@ -21,6 +21,7 @@ router.post(
     body('communeId').isInt().withMessage('Valid commune is required'),
     body('deliveryCompanyId').isInt().withMessage('Valid delivery company is required'),
     body('deliveryType').isIn(['home_delivery', 'desk_delivery']).withMessage('Valid delivery type is required'),
+    body('couponCode').optional({ checkFalsy: true, nullable: true }).trim(),
   ],
   validate,
   guestCheckoutController.checkout,

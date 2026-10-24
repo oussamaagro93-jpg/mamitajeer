@@ -6,8 +6,10 @@ class CategoryRepository extends BaseRepository {
     super(Category);
   }
 
-  async findBySlug(slug) {
-    return this.findOne({ where: { slug } });
+  async findBySlug(slug, adminId) {
+    const where = { slug };
+    if (adminId) where.adminId = adminId;
+    return this.findOne({ where });
   }
 
   async findAllWithChildren() {
@@ -18,8 +20,9 @@ class CategoryRepository extends BaseRepository {
     });
   }
 
-  async getCategoryTree() {
-    const categories = await this.findAll({ order: [['sortOrder', 'ASC']] });
+  async getCategoryTree(where = {}) {
+    const result = await this.findAll({ where, order: [['sortOrder', 'ASC']] });
+    const categories = result.rows || result;
     const map = {};
     const roots = [];
     categories.forEach((cat) => {

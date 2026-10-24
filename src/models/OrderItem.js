@@ -16,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       taxRate: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
       taxAmount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
       discountAmount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+      inventoryAllocations: { type: DataTypes.JSONB, allowNull: true },
     },
     { tableName: 'order_items', indexes: [{ fields: ['order_id'] }, { fields: ['product_id'] }] },
   );

@@ -4,7 +4,7 @@ const { sendSuccess } = require('../utils/response');
 class ShippingRateController {
   async index(req, res, next) {
     try {
-      const data = await shippingRateService.findAll(req.query);
+      const data = await shippingRateService.findAll(req.query, req.tenantAdminId);
       sendSuccess(res, data);
     } catch (error) {
       next(error);
@@ -13,7 +13,7 @@ class ShippingRateController {
 
   async show(req, res, next) {
     try {
-      const rate = await shippingRateService.findById(req.params.id);
+      const rate = await shippingRateService.findById(req.params.id, req.tenantAdminId);
       sendSuccess(res, { rate });
     } catch (error) {
       next(error);
@@ -22,7 +22,7 @@ class ShippingRateController {
 
   async create(req, res, next) {
     try {
-      const rate = await shippingRateService.create(req.body);
+      const rate = await shippingRateService.create(req.body, req.tenantAdminId);
       sendSuccess(res, { rate }, 'Shipping rate created', 201);
     } catch (error) {
       next(error);
@@ -31,7 +31,7 @@ class ShippingRateController {
 
   async update(req, res, next) {
     try {
-      const rate = await shippingRateService.update(req.params.id, req.body);
+      const rate = await shippingRateService.update(req.params.id, req.body, req.tenantAdminId);
       sendSuccess(res, { rate }, 'Shipping rate updated');
     } catch (error) {
       next(error);
@@ -40,7 +40,7 @@ class ShippingRateController {
 
   async delete(req, res, next) {
     try {
-      await shippingRateService.delete(req.params.id);
+      await shippingRateService.delete(req.params.id, req.tenantAdminId);
       sendSuccess(res, null, 'Shipping rate deleted');
     } catch (error) {
       next(error);
@@ -49,7 +49,7 @@ class ShippingRateController {
 
   async bulkImport(req, res, next) {
     try {
-      const results = await shippingRateService.bulkUpsert(req.body.rates);
+      const results = await shippingRateService.bulkUpsert(req.body.rates, req.tenantAdminId);
       sendSuccess(res, results, 'Bulk import completed');
     } catch (error) {
       next(error);

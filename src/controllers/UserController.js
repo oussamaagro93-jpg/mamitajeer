@@ -4,7 +4,7 @@ const { sendSuccess } = require('../utils/response');
 class UserController {
   async index(req, res, next) {
     try {
-      const data = await userService.findAll(req.query);
+      const data = await userService.findAll(req.query, req.user);
       sendSuccess(res, data);
     } catch (error) {
       next(error);
@@ -13,7 +13,7 @@ class UserController {
 
   async show(req, res, next) {
     try {
-      const user = await userService.findById(req.params.id);
+      const user = await userService.findById(req.params.id, req.user);
       sendSuccess(res, { user });
     } catch (error) {
       next(error);
@@ -22,7 +22,7 @@ class UserController {
 
   async create(req, res, next) {
     try {
-      const user = await userService.create(req.body);
+      const user = await userService.create(req.body, req.user);
       sendSuccess(res, { user }, 'User created', 201);
     } catch (error) {
       next(error);
@@ -31,7 +31,7 @@ class UserController {
 
   async update(req, res, next) {
     try {
-      const user = await userService.update(req.params.id, req.body);
+      const user = await userService.update(req.params.id, req.body, req.user);
       sendSuccess(res, { user }, 'User updated');
     } catch (error) {
       next(error);
@@ -40,7 +40,7 @@ class UserController {
 
   async delete(req, res, next) {
     try {
-      await userService.delete(req.params.id);
+      await userService.delete(req.params.id, req.user);
       sendSuccess(res, null, 'User deleted');
     } catch (error) {
       next(error);

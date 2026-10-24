@@ -3,6 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     'Category',
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      adminId: { type: DataTypes.INTEGER, allowNull: true },
       name: {
         type: DataTypes.STRING(200),
         allowNull: false,
@@ -10,7 +11,6 @@ module.exports = (sequelize, DataTypes) => {
       slug: {
         type: DataTypes.STRING(200),
         allowNull: false,
-        unique: true,
       },
       description: {
         type: DataTypes.TEXT,
@@ -44,7 +44,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: 'categories',
       indexes: [
-        { unique: true, fields: ['slug'] },
+        { unique: true, fields: ['admin_id', 'slug'], where: { deleted_at: null } },
         { fields: ['parent_id'] },
       ],
     },

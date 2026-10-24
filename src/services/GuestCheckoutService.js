@@ -1,7 +1,10 @@
-const { Order, OrderItem, OrderTimeline, Product, ProductImage, Wilaya, Commune } = require('../models');
+const { Order, OrderItem, OrderTimeline, Product, ProductImage, Wilaya, Commune, DeliveryCompany } = require('../models');
 const { sequelize } = require('../models');
 const ApiError = require('../utils/ApiError');
+const { roundMoney } = require('../utils/helpers');
 const shippingRateService = require('./ShippingRateService');
+const couponService = require('./CouponService');
+const inventoryService = require('./InventoryService');
 const metaService = require('./MetaService');
 
 class GuestCheckoutService {
@@ -47,8 +50,19 @@ class GuestCheckoutService {
     const productMap = {};
     products.forEach(function (p) { productMap[p.id] = p; });
 
+    // All items in one order must belong to the same admin tenant.
+    const orderAdminId = products[0].adminId;
+    if (!orderAdminId) {
+      throw new ApiError(400, 'Product owner is not configured');
+    }
+    const crossTenant = products.some(function (p) { return p.adminId !== orderAdminId; });
+    if (crossTenant) {
+      throw new ApiError(400, 'All items in an order must belong to the same store');
+    }
+
     let subtotal = 0;
     const orderItems = [];
+    const couponItems = [];
 
     for (const item of items) {
       const product = productMap[item.productId];
@@ -59,9 +73,9 @@ class GuestCheckoutService {
         throw new ApiError(400, 'Insufficient stock for ' + product.name);
       }
 
-      const unitPrice = parseFloat(product.price);
+      const unitPrice = roundMoney(product.price);
       const quantity = parseInt(item.quantity, 10) || 1;
-      const totalPrice = unitPrice * quantity;
+      const totalPrice = roundMoney(unitPrice * quantity);
 
       subtotal += totalPrice;
 
@@ -74,19 +88,44 @@ class GuestCheckoutService {
         unitPrice: unitPrice,
         totalPrice: totalPrice,
       });
+      couponItems.push({
+        productId: product.id,
+        categoryId: product.categoryId,
+        quantity: quantity,
+        unitPrice: unitPrice,
+        totalPrice: totalPrice,
+      });
+    }
+    subtotal = roundMoney(subtotal);
+
+    // The delivery company is chosen on the product. Fall back to the
+    // client-provided company only for legacy products without one.
+    const productDeliveryCompanyId = products
+      .map(function (p) { return p.deliveryCompanyId; })
+      .find(function (id) { return !!id; }) || null;
+    const effectiveDeliveryCompanyId = productDeliveryCompanyId || deliveryCompanyId;
+    const effectiveDeliveryType = deliveryType || 'home_delivery';
+
+    if (!effectiveDeliveryCompanyId) {
+      throw new ApiError(400, 'Delivery company is required');
+    }
+
+    const deliveryCompany = await DeliveryCompany.findOne({
+      where: { id: effectiveDeliveryCompanyId, adminId: orderAdminId, active: true },
+    });
+    if (!deliveryCompany) {
+      throw new ApiError(400, 'Delivery company is not available for this store');
     }
 
     // Backend-calculated shipping price (never trust the frontend)
     const quote = await shippingRateService.calculatePrice(
-      deliveryCompanyId,
+      effectiveDeliveryCompanyId,
       wilayaId,
       communeId,
-      deliveryType,
+      effectiveDeliveryType,
     );
 
-    const shippingCost = quote.price;
-
-    const total = subtotal + shippingCost;
+    const normalizedGuestPhone = couponService.normalizePhone(guestPhone) || guestPhone;
 
     const now = new Date();
     const year = now.getFullYear();
@@ -95,16 +134,57 @@ class GuestCheckoutService {
     const rand = Math.floor(Math.random() * 99999).toString().padStart(5, '0');
     const orderNumber = 'GST-' + year + month + day + '-' + rand;
 
-    const order = await sequelize.transaction(async function (t) {
+    const transactionResult = await sequelize.transaction(async function (t) {
+      // Lock product rows so two concurrent checkouts cannot both pass the
+      // earlier stock check and oversell the same item.
+      const lockedProducts = await Product.findAll({
+        where: { id: productIds, adminId: orderAdminId },
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+        order: [['id', 'ASC']],
+      });
+      const lockedMap = {};
+      lockedProducts.forEach(function (product) { lockedMap[product.id] = product; });
+      for (const item of items) {
+        const product = lockedMap[item.productId];
+        if (!product || Number(product.quantity) < Number(item.quantity)) {
+          throw new ApiError(400, 'Insufficient stock for ' + (product ? product.name : 'one or more products'));
+        }
+      }
+
+      const stockAllocations = await inventoryService.consumeStock(
+        couponItems,
+        orderAdminId,
+        t,
+      );
+
+      // Re-validate the coupon inside the transaction. The coupon row is
+      // locked so concurrent checkouts cannot exceed its global usage limit.
+      const couponResult = await couponService.applyToOrder({
+        code: data.couponCode,
+        adminId: orderAdminId,
+        items: couponItems,
+        subtotal: subtotal,
+        customer: { phone: normalizedGuestPhone },
+        transaction: t,
+      });
+
+      const shippingCost = couponResult.freeShipping ? 0 : roundMoney(quote.price);
+      const discountAmount = roundMoney(couponResult.discount);
+      const total = roundMoney(Math.max(0, subtotal + shippingCost - discountAmount));
+
       const createdOrder = await Order.create(
         {
           orderNumber: orderNumber,
+          adminId: orderAdminId,
           email: '',
           subtotal: subtotal,
           shippingCost: shippingCost,
-          shippingMethod: quote.deliveryCompanyName + ' - ' + (deliveryType === 'home_delivery' ? 'Home Delivery' : 'Stop Desk'),
+          shippingMethod: quote.deliveryCompanyName + ' - ' + (effectiveDeliveryType === 'home_delivery' ? 'Home Delivery' : 'Stop Desk'),
           taxAmount: 0,
-          discountAmount: 0,
+          discountAmount: discountAmount,
+          couponId: couponResult.coupon ? couponResult.coupon.id : null,
+          couponCode: couponResult.coupon ? couponResult.coupon.code : null,
           total: total,
           paidAmount: 0,
           dueAmount: total,
@@ -114,15 +194,15 @@ class GuestCheckoutService {
           paymentStatus: 'pending',
           shippingStatus: 'not_shipped',
           guestName: guestName,
-          guestPhone: guestPhone,
+          guestPhone: normalizedGuestPhone,
           guestWilaya: wilayaName,
           guestCity: cityName,
           guestAddress: guestAddress,
           notes: notes || null,
           // Structured delivery snapshot
-          deliveryCompanyId: deliveryCompanyId,
+          deliveryCompanyId: effectiveDeliveryCompanyId,
           deliveryCompanyName: quote.deliveryCompanyName,
-          deliveryType: deliveryType,
+          deliveryType: effectiveDeliveryType,
           wilayaId: wilayaId,
           wilayaName: wilaya.nameFr,
           communeId: communeId,
@@ -132,8 +212,12 @@ class GuestCheckoutService {
         { transaction: t },
       );
 
-      const itemsWithOrderId = orderItems.map(function (oi) {
-        return { ...oi, orderId: createdOrder.id };
+      const itemsWithOrderId = orderItems.map(function (oi, index) {
+        return {
+          ...oi,
+          orderId: createdOrder.id,
+          inventoryAllocations: stockAllocations[index] || [],
+        };
       });
       await OrderItem.bulkCreate(itemsWithOrderId, { transaction: t });
 
@@ -148,13 +232,25 @@ class GuestCheckoutService {
       );
 
       for (const item of items) {
-        const product = productMap[item.productId];
-        await Product.decrement('quantity', { by: item.quantity, where: { id: item.productId }, transaction: t });
+        await Product.decrement('quantity', {
+          by: item.quantity,
+          where: { id: item.productId, adminId: orderAdminId },
+          transaction: t,
+        });
       }
 
-      return createdOrder;
+      await couponService.incrementUsage(couponResult.coupon, t);
+
+      return {
+        order: createdOrder,
+        couponResult: couponResult,
+        shippingCost: shippingCost,
+        discountAmount: discountAmount,
+        total: total,
+      };
     });
 
+    const order = transactionResult.order;
     const result = await Order.findByPk(order.id, {
       include: [
         { model: OrderItem, as: 'items' },
@@ -169,6 +265,9 @@ class GuestCheckoutService {
       paymentMethod: result.paymentMethod,
       subtotal: result.subtotal,
       shippingCost: result.shippingCost,
+      discountAmount: result.discountAmount,
+      couponCode: result.couponCode,
+      couponApplied: !!result.couponCode,
       total: result.total,
       currency: result.currency,
       guestName: result.guestName,
@@ -203,7 +302,7 @@ class GuestCheckoutService {
           return { id: String(i.productId), quantity: i.quantity, item_price: i.unitPrice };
         }),
         currency: 'DZD',
-        value: total,
+        value: Number(result.total),
         num_items: items.length,
         order_id: orderResult.orderNumber,
       },

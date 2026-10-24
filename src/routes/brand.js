@@ -2,22 +2,40 @@ const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
 const brandController = require('../controllers/BrandController');
-const { authenticate, authorize } = require('../middleware/authenticate');
+const { authenticate } = require('../middleware/authenticate');
+const optionalAuthenticate = require('../middleware/optionalAuthenticate');
+const { tenantContext } = require('../middleware/tenant');
+const { requirePermission } = require('../middleware/permissions');
+const { PERMISSIONS } = require('../config/permissions');
 const validate = require('../middleware/validate');
 
-router.get('/', brandController.index);
-router.get('/:id', brandController.show);
+const staff = [authenticate, tenantContext];
+
+// Public catalogue. A staff token scopes the list to that admin's tenant.
+router.get('/', optionalAuthenticate, brandController.index);
+router.get('/:id', optionalAuthenticate, brandController.show);
 
 router.post(
   '/',
-  authenticate,
-  authorize('super_admin', 'admin', 'manager'),
+  staff,
+  requirePermission(PERMISSIONS.BRANDS_CREATE),
   [body('name').trim().notEmpty().withMessage('Brand name is required')],
   validate,
   brandController.create,
 );
 
-router.put('/:id', authenticate, authorize('super_admin', 'admin', 'manager'), brandController.update);
-router.delete('/:id', authenticate, authorize('super_admin', 'admin'), brandController.delete);
+router.put(
+  '/:id',
+  staff,
+  requirePermission(PERMISSIONS.BRANDS_UPDATE),
+  brandController.update,
+);
+
+router.delete(
+  '/:id',
+  staff,
+  requirePermission(PERMISSIONS.BRANDS_DELETE),
+  brandController.delete,
+);
 
 module.exports = router;

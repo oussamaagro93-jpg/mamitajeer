@@ -3,3 +3,6 @@
 npm run migration
 npm run seed
 node .
+
+
+npx sequelize-cli db:migrate --env production

@@ -4,7 +4,7 @@ const { sendSuccess } = require('../utils/response');
 class DashboardController {
   async stats(req, res, next) {
     try {
-      const data = await dashboardService.getStats();
+      const data = await dashboardService.getStats(req.tenantAdminId);
       sendSuccess(res, data);
     } catch (error) {
       next(error);
@@ -14,7 +14,7 @@ class DashboardController {
   async revenueChart(req, res, next) {
     try {
       const days = parseInt(req.query.days) || 30;
-      const data = await dashboardService.getRevenueChart(days);
+      const data = await dashboardService.getRevenueChart(days, req.tenantAdminId);
       sendSuccess(res, { data });
     } catch (error) {
       next(error);
@@ -23,7 +23,7 @@ class DashboardController {
 
   async orderStatusDistribution(req, res, next) {
     try {
-      const data = await dashboardService.getOrderStatusDistribution();
+      const data = await dashboardService.getOrderStatusDistribution(req.tenantAdminId);
       sendSuccess(res, { data });
     } catch (error) {
       next(error);

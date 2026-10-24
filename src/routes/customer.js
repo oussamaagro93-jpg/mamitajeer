@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const customerController = require('../controllers/CustomerController');
-const { authenticate, authorize } = require('../middleware/authenticate');
+const { authenticate } = require('../middleware/authenticate');
+const { tenantContext } = require('../middleware/tenant');
+const { requirePermission } = require('../middleware/permissions');
+const { PERMISSIONS } = require('../config/permissions');
 
-router.get('/', authenticate, authorize('super_admin', 'admin', 'manager'), customerController.index);
-router.get('/:id', authenticate, authorize('super_admin', 'admin', 'manager'), customerController.show);
-router.put('/:id', authenticate, authorize('super_admin', 'admin'), customerController.update);
-router.delete('/:id', authenticate, authorize('super_admin', 'admin'), customerController.delete);
+const staff = [authenticate, tenantContext];
+
+router.get('/', staff, requirePermission(PERMISSIONS.CUSTOMERS_VIEW), customerController.index);
+router.get('/:id', staff, requirePermission(PERMISSIONS.CUSTOMERS_VIEW), customerController.show);
+router.put('/:id', staff, requirePermission(PERMISSIONS.CUSTOMERS_UPDATE), customerController.update);
+router.delete('/:id', staff, requirePermission(PERMISSIONS.CUSTOMERS_DELETE), customerController.delete);
 
 module.exports = router;

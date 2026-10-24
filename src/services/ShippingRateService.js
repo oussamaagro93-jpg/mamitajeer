@@ -1,13 +1,14 @@
 const { ShippingRate, DeliveryCompany, Wilaya, CommuneShippingOverride, Commune } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { paginate, getPaginationMeta } = require('../utils/helpers');
+const { tenantWhere, resolveAdminId } = require('../utils/tenant');
 const { Op } = require('sequelize');
 
 class ShippingRateService {
-  async findAll(query) {
+  async findAll(query, tenantId) {
     const { page, limit, offset } = paginate(query);
     const { deliveryCompanyId, wilayaId, search, active } = query;
-    const where = {};
+    const where = tenantWhere(tenantId, {});
     if (deliveryCompanyId) where.deliveryCompanyId = deliveryCompanyId;
     if (wilayaId) where.wilayaId = wilayaId;
     if (active !== undefined) where.active = active === 'true' || active === true;
@@ -35,9 +36,9 @@ class ShippingRateService {
     return { rates: result.rows, pagination: getPaginationMeta(result.count, page, limit) };
   }
 
-  async findByCompanyId(companyId, query = {}) {
+  async findByCompanyId(companyId, query = {}, tenantId) {
     const { page, limit, offset } = paginate(query);
-    const where = { deliveryCompanyId: companyId };
+    const where = tenantWhere(tenantId, { deliveryCompanyId: companyId });
     if (query.active !== undefined) where.active = query.active === 'true' || query.active === true;
 
     const result = await ShippingRate.findAndCountAll({
@@ -53,8 +54,9 @@ class ShippingRateService {
     return { rates: result.rows, pagination: getPaginationMeta(result.count, page, limit) };
   }
 
-  async findById(id) {
-    const rate = await ShippingRate.findByPk(id, {
+  async findById(id, tenantId) {
+    const rate = await ShippingRate.findOne({
+      where: tenantWhere(tenantId, { id }),
       include: [
         { model: DeliveryCompany, as: 'deliveryCompany', attributes: ['id', 'name', 'code'] },
         { model: Wilaya, as: 'wilaya', attributes: ['id', 'code', 'nameAr', 'nameFr'] },
@@ -64,29 +66,43 @@ class ShippingRateService {
     return rate;
   }
 
-  async create(data) {
-    const existing = await ShippingRate.findOne({
-      where: { deliveryCompanyId: data.deliveryCompanyId, wilayaId: data.wilayaId, active: true },
-    });
-    if (existing) throw new ApiError(400, 'An active rate already exists for this company and wilaya');
-    return ShippingRate.create(data);
+  async assertCompany(companyId, adminId) {
+    const company = await DeliveryCompany.findOne({ where: { id: companyId, adminId } });
+    if (!company) throw new ApiError(400, 'Delivery company does not belong to this admin');
+    return company;
   }
 
-  async update(id, data) {
-    const rate = await ShippingRate.findByPk(id);
+  async create(data, tenantId) {
+    const adminId = await resolveAdminId(tenantId);
+    if (!adminId) throw new ApiError(400, 'An admin account is required to create a shipping rate');
+    await this.assertCompany(data.deliveryCompanyId, adminId);
+
+    const existing = await ShippingRate.findOne({
+      where: { deliveryCompanyId: data.deliveryCompanyId, wilayaId: data.wilayaId, active: true, adminId },
+    });
+    if (existing) throw new ApiError(400, 'An active rate already exists for this company and wilaya');
+    return ShippingRate.create({ ...data, adminId });
+  }
+
+  async update(id, data, tenantId) {
+    const rate = await ShippingRate.findOne({ where: tenantWhere(tenantId, { id }) });
     if (!rate) throw new ApiError(404, 'Shipping rate not found');
+    delete data.adminId;
+    if (data.deliveryCompanyId) await this.assertCompany(data.deliveryCompanyId, rate.adminId);
     return rate.update(data);
   }
 
-  async delete(id) {
-    const rate = await ShippingRate.findByPk(id);
+  async delete(id, tenantId) {
+    const rate = await ShippingRate.findOne({ where: tenantWhere(tenantId, { id }) });
     if (!rate) throw new ApiError(404, 'Shipping rate not found');
     await rate.destroy();
     return true;
   }
 
-  async bulkUpsert(rates) {
+  async bulkUpsert(rates, tenantId) {
     const results = { created: 0, updated: 0, errors: [] };
+    const adminId = await resolveAdminId(tenantId);
+    if (!adminId) throw new ApiError(400, 'An admin account is required to import shipping rates');
 
     for (const rate of rates) {
       try {
@@ -95,6 +111,8 @@ class ShippingRateService {
           continue;
         }
 
+        await this.assertCompany(rate.deliveryCompanyId, adminId);
+
         const wilaya = await Wilaya.findOne({ where: { code: String(rate.wilayaCode) } });
         if (!wilaya) {
           results.errors.push({ ...rate, error: `Wilaya code ${rate.wilayaCode} does not exist.` });
@@ -102,17 +120,18 @@ class ShippingRateService {
         }
 
         const wilayaId = wilaya.id;
+        const { wilayaCode, ...rateData } = rate;
 
         const [instance, created] = await ShippingRate.findOrCreate({
           where: {
             deliveryCompanyId: rate.deliveryCompanyId,
             wilayaId,
           },
-          defaults: { ...rate, wilayaId, wilayaCode: undefined },
+          defaults: { ...rateData, wilayaId, adminId },
         });
 
         if (!created) {
-          await instance.update({ ...rate, wilayaId, wilayaCode: undefined });
+          await instance.update({ ...rateData, wilayaId });
           results.updated++;
         } else {
           results.created++;
@@ -192,12 +211,16 @@ class ShippingRateService {
     };
   }
 
-  async getAvailableOptions(wilayaId, communeId) {
+  async getAvailableOptions(wilayaId, communeId, deliveryCompanyId, adminId) {
     const wilaya = await Wilaya.findByPk(wilayaId);
     if (!wilaya || !wilaya.active) throw new ApiError(400, 'Wilaya not found or inactive');
 
+    const where = { active: true };
+    if (deliveryCompanyId) where.id = deliveryCompanyId;
+    if (adminId) where.adminId = adminId;
+
     const companies = await DeliveryCompany.findAll({
-      where: { active: true },
+      where,
       order: [['name', 'ASC']],
     });
 

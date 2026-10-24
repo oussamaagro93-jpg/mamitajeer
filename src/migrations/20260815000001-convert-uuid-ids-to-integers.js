@@ -79,6 +79,14 @@ module.exports = {
 
       const liveFkList = fkList.filter((f) => !ORPHAN_TABLES.includes(f.child));
 
+      // Only FK columns that were actually UUID need remapping. On a fresh
+      // database the models already use INTEGER ids, so the remaining FKs
+      // must simply be dropped and restored unchanged.
+      const uuidColumnSet = new Set(uuidCols.map((c) => `${c.table_name}.${c.column_name}`));
+      const convertingFkList = liveFkList.filter((f) =>
+        uuidColumnSet.has(`${f.child}.${f.col}`),
+      );
+
       const indexResult = await run(
         `SELECT t.relname AS tablename,
                 i.relname AS indexname,
@@ -190,7 +198,7 @@ module.exports = {
       }
 
       console.log('Swapping foreign key columns and restoring constraints...');
-      for (const f of liveFkList) {
+      for (const f of convertingFkList) {
         const tempCol = `__${f.col}_new`;
         await run(`ALTER TABLE ${qi(f.child)} DROP COLUMN ${qi(f.col)}`, t);
         await run(`ALTER TABLE ${qi(f.child)} RENAME COLUMN ${qi(tempCol)} TO ${qi(f.col)}`, t);

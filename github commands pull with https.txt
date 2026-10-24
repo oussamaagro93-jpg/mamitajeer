@@ -9,4 +9,15 @@ git pull origin main
 
 git add . 
 git commit -m "Add Cloudinary configuration and run migrations"
-git push origin main 
+git push origin main
+
+
+
+git remote set-url origin https://github.com/alasqlto62/store4backend.git/
+
+
+git remote set-url origin git@github.com:alasqlto62/store4backend.git
+git push origin main
+
+
+ 

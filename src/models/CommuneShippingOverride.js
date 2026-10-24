@@ -3,6 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     'CommuneShippingOverride',
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      adminId: { type: DataTypes.INTEGER, allowNull: true },
       deliveryCompanyId: { type: DataTypes.INTEGER, allowNull: false },
       communeId: { type: DataTypes.INTEGER, allowNull: false },
       homeDeliveryPrice: { type: DataTypes.DECIMAL(10, 2), allowNull: true },

@@ -2,17 +2,26 @@ const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
 const controller = require('../controllers/DeliveryCompanyController');
-const { authenticate, authorize } = require('../middleware/authenticate');
+const { authenticate } = require('../middleware/authenticate');
+const optionalAuthenticate = require('../middleware/optionalAuthenticate');
+const { tenantContext } = require('../middleware/tenant');
+const { requirePermission } = require('../middleware/permissions');
+const { PERMISSIONS } = require('../config/permissions');
 const validate = require('../middleware/validate');
 
-router.get('/', authenticate, authorize('super_admin', 'admin'), controller.index);
-router.get('/active', controller.getActive);
-router.get('/:id', authenticate, authorize('super_admin', 'admin'), controller.show);
+const staff = [authenticate, tenantContext];
+
+router.get('/', staff, requirePermission(PERMISSIONS.SHIPPING_VIEW), controller.index);
+
+// Public storefront endpoint. A staff token scopes the list to their tenant.
+router.get('/active', optionalAuthenticate, controller.getActive);
+
+router.get('/:id', staff, requirePermission(PERMISSIONS.SHIPPING_VIEW), controller.show);
 
 router.post(
   '/',
-  authenticate,
-  authorize('super_admin'),
+  staff,
+  requirePermission(PERMISSIONS.SHIPPING_CREATE),
   [
     body('name').trim().notEmpty().withMessage('Company name is required'),
     body('code').trim().notEmpty().withMessage('Company code is required'),
@@ -21,7 +30,18 @@ router.post(
   controller.create,
 );
 
-router.put('/:id', authenticate, authorize('super_admin'), controller.update);
-router.delete('/:id', authenticate, authorize('super_admin'), controller.delete);
+router.put(
+  '/:id',
+  staff,
+  requirePermission(PERMISSIONS.SHIPPING_UPDATE),
+  controller.update,
+);
+
+router.delete(
+  '/:id',
+  staff,
+  requirePermission(PERMISSIONS.SHIPPING_DELETE),
+  controller.delete,
+);
 
 module.exports = router;

@@ -2,8 +2,9 @@ const { Op } = require('sequelize');
 const productRepository = require('../repositories/ProductRepository');
 const ApiError = require('../utils/ApiError');
 const { createSlug, generateSKU, generateBarcode, paginate, getPaginationMeta } = require('../utils/helpers');
-const { ProductImage, ProductVariant, Category, Brand, Product, RelatedProduct } = require('../models');
+const { ProductImage, ProductVariant, Category, Brand, DeliveryCompany, Product, RelatedProduct } = require('../models');
 const cloudinaryService = require('./cloudinaryService');
+const { tenantWhere, resolveAdminId } = require('../utils/tenant');
 
 class ProductService {
   async generateUniqueSlug(name, excludeId) {
@@ -23,11 +24,12 @@ class ProductService {
     return slug;
   }
 
-  async findAll(query) {
+  async findAll(query, options = {}) {
     const { page, limit, offset } = paginate(query);
     const { search, categoryId, brandId, status, minPrice, maxPrice, sortBy, sortOrder, isFeatured } = query;
 
     const where = {};
+    if (options.tenantId) where.adminId = options.tenantId;
     if (search) {
       where[Op.or] = [
         { name: { [Op.iLike]: `%${search}%` } },
@@ -36,7 +38,11 @@ class ProductService {
     }
     if (categoryId) where.categoryId = categoryId;
     if (brandId) where.brandId = brandId;
-    if (status) where.status = status;
+    if (options.publicOnly) {
+      where.status = 'published';
+    } else if (status) {
+      where.status = status;
+    }
     if (isFeatured !== undefined) where.isFeatured = isFeatured === 'true';
     if (minPrice || maxPrice) {
       where.price = {};
@@ -64,8 +70,9 @@ class ProductService {
     };
   }
 
-  async findById(id) {
-    const product = await productRepository.findById(id, {
+  async findById(id, tenantId) {
+    const product = await productRepository.findOne({
+      where: tenantWhere(tenantId, { id }),
       include: [
         { model: Category, as: 'category' },
         { model: Brand, as: 'brand' },
@@ -84,6 +91,27 @@ class ProductService {
     return product;
   }
 
+  async getOwnedProduct(id, tenantId) {
+    const product = await Product.findOne({ where: tenantWhere(tenantId, { id }) });
+    if (!product) throw new ApiError(404, 'Product not found');
+    return product;
+  }
+
+  async validateOwnedReferences(data, adminId) {
+    if (data.categoryId) {
+      const category = await Category.findOne({ where: { id: data.categoryId, adminId } });
+      if (!category) throw new ApiError(400, 'Category does not belong to this admin');
+    }
+    if (data.brandId) {
+      const brand = await Brand.findOne({ where: { id: data.brandId, adminId } });
+      if (!brand) throw new ApiError(400, 'Brand does not belong to this admin');
+    }
+    if (data.deliveryCompanyId) {
+      const company = await DeliveryCompany.findOne({ where: { id: data.deliveryCompanyId, adminId } });
+      if (!company) throw new ApiError(400, 'Delivery company does not belong to this admin');
+    }
+  }
+
   async findBySlug(slug) {
     const product = await productRepository.findBySlug(slug);
     if (!product) throw new ApiError(404, 'Product not found');
@@ -99,7 +127,7 @@ class ProductService {
     return product;
   }
 
-  async create(data, uploadInfo) {
+  async create(data, uploadInfo, tenantId) {
     const numericFields = ['price', 'comparePrice', 'costPrice', 'quantity', 'lowStockThreshold', 'weight', 'length', 'width', 'height'];
     const nullableNumeric = ['comparePrice', 'costPrice', 'weight', 'length', 'width', 'height'];
     for (const field of numericFields) {
@@ -108,12 +136,39 @@ class ProductService {
       }
     }
 
+    if (data.deliveryCompanyId === '') data.deliveryCompanyId = null;
+
+    // Resolve the owning tenant. Admins/managers/employees are scoped by the
+    // middleware; superadmins can provide adminId or inherit it from a
+    // referenced category/brand/company.
+    let adminId = tenantId;
+    if (!adminId && data.categoryId) {
+      const category = await Category.findOne({ where: { id: data.categoryId } });
+      if (category) adminId = category.adminId;
+    }
+    if (!adminId && data.brandId) {
+      const brand = await Brand.findOne({ where: { id: data.brandId } });
+      if (brand) adminId = brand.adminId;
+    }
+    if (!adminId && data.deliveryCompanyId) {
+      const company = await DeliveryCompany.findOne({ where: { id: data.deliveryCompanyId } });
+      if (company) adminId = company.adminId;
+    }
+    if (!adminId) adminId = await resolveAdminId(null);
+    if (!adminId) throw new ApiError(400, 'An admin account is required to create a product');
+
+    data.adminId = adminId;
+    await this.validateOwnedReferences(data, adminId);
+
     const slug = await this.generateUniqueSlug(data.name);
     const sku = data.sku || generateSKU(data.name, data.categoryName);
     const barcode = data.barcode || generateBarcode();
 
-    const existingSku = await productRepository.findBySku(sku);
+    const existingSku = await productRepository.findBySku(sku, adminId);
     if (existingSku) throw new ApiError(400, 'Product SKU already exists');
+
+    const existingBarcode = await Product.findOne({ where: { barcode, adminId } });
+    if (existingBarcode) throw new ApiError(400, 'Product barcode already exists');
 
     const createData = {
       ...data,
@@ -147,12 +202,11 @@ class ProductService {
       );
     }
 
-    return this.findById(product.id);
+    return this.findById(product.id, tenantId);
   }
 
-  async update(id, data, uploadInfo) {
-    const product = await productRepository.findById(id);
-    if (!product) throw new ApiError(404, 'Product not found');
+  async update(id, data, uploadInfo, tenantId) {
+    const product = await this.getOwnedProduct(id, tenantId);
 
     const numericFields = ['price', 'comparePrice', 'costPrice', 'quantity', 'lowStockThreshold', 'weight', 'length', 'width', 'height'];
     const nullableNumeric = ['comparePrice', 'costPrice', 'weight', 'length', 'width', 'height'];
@@ -161,6 +215,11 @@ class ProductService {
         data[field] = nullableNumeric.includes(field) ? null : 0;
       }
     }
+
+    if (data.deliveryCompanyId === '') data.deliveryCompanyId = null;
+    delete data.adminId;
+
+    await this.validateOwnedReferences(data, product.adminId);
 
     delete data.slug;
 
@@ -197,12 +256,11 @@ class ProductService {
       );
     }
 
-    return this.findById(id);
+    return this.findById(id, tenantId);
   }
 
-  async delete(id) {
-    const product = await productRepository.findById(id);
-    if (!product) throw new ApiError(404, 'Product not found');
+  async delete(id, tenantId) {
+    const product = await this.getOwnedProduct(id, tenantId);
 
     var publicIds = [];
     if (product.imagePublicId) publicIds.push(product.imagePublicId);
@@ -222,9 +280,8 @@ class ProductService {
     return true;
   }
 
-  async addImages(productId, files) {
-    const product = await productRepository.findById(productId);
-    if (!product) throw new ApiError(404, 'Product not found');
+  async addImages(productId, files, tenantId) {
+    const product = await this.getOwnedProduct(productId, tenantId);
 
     var imageCount = await ProductImage.count({ where: { productId: productId } });
     var images = [];
@@ -252,9 +309,8 @@ class ProductService {
     return images;
   }
 
-  async updateImage(productId, imageId, data) {
-    const product = await productRepository.findById(productId);
-    if (!product) throw new ApiError(404, 'Product not found');
+  async updateImage(productId, imageId, data, tenantId) {
+    const product = await this.getOwnedProduct(productId, tenantId);
 
     var image = await ProductImage.findOne({ where: { id: imageId, productId: productId } });
     if (!image) throw new ApiError(404, 'Image not found');
@@ -278,9 +334,8 @@ class ProductService {
     return image;
   }
 
-  async removeImage(productId, imageId) {
-    const product = await productRepository.findById(productId);
-    if (!product) throw new ApiError(404, 'Product not found');
+  async removeImage(productId, imageId, tenantId) {
+    const product = await this.getOwnedProduct(productId, tenantId);
 
     var image = await ProductImage.findOne({ where: { id: imageId, productId: productId } });
     if (!image) throw new ApiError(404, 'Image not found');
@@ -311,13 +366,17 @@ class ProductService {
 
     return true;
   }
-  async getRelatedProducts(productId) {
+  async getRelatedProducts(productId, tenantId) {
+    const product = await this.getOwnedProduct(productId, tenantId);
+
     const relations = await RelatedProduct.findAll({
       where: { productId },
       include: [{
         model: Product,
         as: 'relatedProduct',
-        attributes: ['id', 'name', 'slug', 'price', 'image'],
+        attributes: ['id', 'name', 'slug', 'price', 'image', 'adminId'],
+        where: { adminId: product.adminId },
+        required: true,
         include: [
           { model: ProductImage, as: 'images', attributes: ['id', 'url', 'alt'], limit: 1 },
         ],
@@ -338,8 +397,10 @@ class ProductService {
     });
   }
 
-  async setRelatedProducts(productId, relatedIds) {
+  async setRelatedProducts(productId, relatedIds, tenantId) {
     if (!Array.isArray(relatedIds)) throw new ApiError(400, 'relatedIds must be an array');
+
+    const product = await this.getOwnedProduct(productId, tenantId);
 
     await RelatedProduct.destroy({ where: { productId } });
 
@@ -348,7 +409,7 @@ class ProductService {
       if (validIds.length === 0) return [];
 
       var existingProducts = await Product.findAll({
-        where: { id: { [Op.in]: validIds } },
+        where: { id: { [Op.in]: validIds }, adminId: product.adminId },
         attributes: ['id'],
       });
       var existingIds = existingProducts.map(function (p) { return p.id; });
@@ -364,7 +425,7 @@ class ProductService {
       );
     }
 
-    return this.getRelatedProducts(productId);
+    return this.getRelatedProducts(productId, tenantId);
   }
 }
 

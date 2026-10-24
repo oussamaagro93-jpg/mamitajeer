@@ -29,6 +29,15 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.ENUM('super_admin', 'admin', 'manager', 'employee', 'customer'),
         defaultValue: 'customer',
       },
+      adminId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      permissions: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: [],
+      },
       phone: {
         type: DataTypes.STRING(20),
         allowNull: true,
@@ -96,6 +105,8 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   User.associate = (models) => {
+    User.belongsTo(models.User, { foreignKey: 'adminId', as: 'admin' });
+    User.hasMany(models.User, { foreignKey: 'adminId', as: 'teamMembers' });
     User.hasMany(models.Address, { foreignKey: 'userId', as: 'addresses' });
     User.hasMany(models.Order, { foreignKey: 'userId', as: 'orders' });
     User.hasMany(models.Review, { foreignKey: 'userId', as: 'reviews' });

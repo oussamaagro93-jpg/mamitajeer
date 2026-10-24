@@ -2,16 +2,21 @@ const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
 const userController = require('../controllers/UserController');
-const { authenticate, authorize } = require('../middleware/authenticate');
+const { authenticate } = require('../middleware/authenticate');
+const { tenantContext } = require('../middleware/tenant');
+const { requirePermission } = require('../middleware/permissions');
+const { PERMISSIONS } = require('../config/permissions');
 const validate = require('../middleware/validate');
 
-router.get('/', authenticate, authorize('super_admin', 'admin'), userController.index);
-router.get('/:id', authenticate, authorize('super_admin', 'admin'), userController.show);
+const staff = [authenticate, tenantContext];
+
+router.get('/', staff, requirePermission(PERMISSIONS.USERS_VIEW), userController.index);
+router.get('/:id', staff, requirePermission(PERMISSIONS.USERS_VIEW), userController.show);
 
 router.post(
   '/',
-  authenticate,
-  authorize('super_admin', 'admin'),
+  staff,
+  requirePermission(PERMISSIONS.USERS_CREATE),
   [
     body('firstName').trim().notEmpty().withMessage('First name is required'),
     body('lastName').trim().notEmpty().withMessage('Last name is required'),
@@ -22,7 +27,7 @@ router.post(
   userController.create,
 );
 
-router.put('/:id', authenticate, authorize('super_admin', 'admin'), userController.update);
-router.delete('/:id', authenticate, authorize('super_admin', 'admin'), userController.delete);
+router.put('/:id', staff, requirePermission(PERMISSIONS.USERS_UPDATE), userController.update);
+router.delete('/:id', staff, requirePermission(PERMISSIONS.USERS_DELETE), userController.delete);
 
 module.exports = router;

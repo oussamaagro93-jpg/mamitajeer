@@ -1,13 +1,15 @@
 const BaseRepository = require('./BaseRepository');
-const { Product, ProductImage, ProductVariant, Category, Brand, RelatedProduct } = require('../models');
+const { Product, ProductImage, ProductVariant, Category, Brand, DeliveryCompany, RelatedProduct } = require('../models');
 
 class ProductRepository extends BaseRepository {
   constructor() {
     super(Product);
   }
 
-  async findBySku(sku) {
-    return this.findOne({ where: { sku } });
+  async findBySku(sku, adminId) {
+    const where = { sku };
+    if (adminId) where.adminId = adminId;
+    return this.findOne({ where });
   }
 
   async findBySlug(slug, options = {}) {
@@ -16,6 +18,7 @@ class ProductRepository extends BaseRepository {
       include: [
         { model: Category, as: 'category' },
         { model: Brand, as: 'brand' },
+        { model: DeliveryCompany, as: 'deliveryCompany', attributes: ['id', 'name', 'code', 'active'] },
         { model: ProductImage, as: 'images' },
         { model: ProductVariant, as: 'variants' },
         {
@@ -35,6 +38,7 @@ class ProductRepository extends BaseRepository {
       include: [
         { model: Category, as: 'category', attributes: ['id', 'name', 'slug'] },
         { model: Brand, as: 'brand', attributes: ['id', 'name', 'slug'] },
+        { model: DeliveryCompany, as: 'deliveryCompany', attributes: ['id', 'name', 'code', 'active'] },
         { model: ProductImage, as: 'images', where: { isPrimary: true }, required: false, limit: 1 },
       ],
       distinct: true,

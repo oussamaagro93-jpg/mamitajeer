@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
 const { User } = require('../models');
+const { getPermissionsForUser } = require('../config/permissions');
 
 const authenticate = async (req, _res, next) => {
   try {
@@ -25,12 +26,12 @@ const authenticate = async (req, _res, next) => {
       throw new ApiError(401, 'Account deactivated');
     }
 
-    if (!user.isEmailVerified) {
-      throw new ApiError(401, 'Email not verified');
-    }
-
+    // Email verification is tracked on the user record, but it is not a
+    // login gate: registration does not send a verification email yet, so
+    // requiring it here would lock every new account out of the app.
     req.user = user;
     req.userId = user.id;
+    req.permissions = getPermissionsForUser(user);
     next();
   } catch (error) {
     if (error instanceof ApiError) {
