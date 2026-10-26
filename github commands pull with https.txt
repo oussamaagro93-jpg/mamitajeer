@@ -1,6 +1,6 @@
 
 
-git remote set-url origin https://github.com/alasqlto62/store4backend.git
+git remote set-url origin https://github.com/alto62/store4backend.git
 git fetch origin
 git stash
 git pull origin main
@@ -13,10 +13,10 @@ git push origin main
 
 
 
-git remote set-url origin https://github.com/alasqlto62/store4backend.git/
+git remote set-url origin https://github.com/qlto62/store4backend.git/
 
 
-git remote set-url origin git@github.com:alasqlto62/store4backend.git
+git remote set-url origin git@github.com:alo62/store4backend.git
 git push origin main
 
 

@@ -25,6 +25,7 @@ router.put(
     body('name').optional({ nullable: true }).isString().trim().isLength({ max: 200 }),
     body('logo').optional({ nullable: true }).isString().trim().isLength({ max: 500 }),
     body('phone').optional({ nullable: true }).isString().trim().isLength({ max: 30 }),
+    body('phone2').optional({ nullable: true }).isString().trim().isLength({ max: 30 }),
     body('whatsapp').optional({ nullable: true }).isString().trim().isLength({ max: 30 }),
     body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Valid email is required'),
     body('address').optional({ nullable: true }).isString().trim(),

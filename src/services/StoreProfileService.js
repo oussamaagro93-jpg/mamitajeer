@@ -2,7 +2,7 @@ const { StoreProfile } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { resolveAdminId } = require('../utils/tenant');
 
-const STRING_FIELDS = ['name', 'phone', 'whatsapp', 'email', 'address'];
+const STRING_FIELDS = ['name', 'phone', 'phone2', 'whatsapp', 'email', 'address'];
 const URL_FIELDS = ['logo', 'facebook', 'instagram', 'x'];
 
 function normalizeString(value) {
@@ -69,6 +69,7 @@ class StoreProfileService {
       name: json.name || null,
       logo: json.logo || null,
       phone: json.phone || null,
+      phone2: json.phone2 || null,
       whatsapp: json.whatsapp || null,
       email: json.email || null,
       address: json.address || null,

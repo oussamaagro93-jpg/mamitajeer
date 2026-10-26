@@ -154,14 +154,13 @@ class ProductService {
 
     const data = product.toJSON();
     const store = storeProfileService.toPublic(storeProfile) || {};
-    if (admin) {
-      // Product contact details always come from the admin account that owns
-      // the product. Store-profile contact fields are only a fallback for
-      // legacy products without an admin account.
-      store.phone = admin.phone || null;
-      store.whatsapp = admin.phone || null;
-      store.email = admin.email || null;
-    }
+    // Contact numbers are assigned by the admin in Store Settings. Only the
+    // numbers that were actually assigned are exposed, so the storefront can
+    // hide the rest. The store email falls back to the admin account email.
+    store.phone = store.phone || null;
+    store.phone2 = store.phone2 || null;
+    store.whatsapp = store.whatsapp || null;
+    store.email = store.email || (admin && admin.email) || null;
     data.store = store;
     return data;
   }
