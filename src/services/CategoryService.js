@@ -1,4 +1,6 @@
+const { Op } = require('sequelize');
 const categoryRepository = require('../repositories/CategoryRepository');
+const { Product, sequelize } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { createSlug, paginate, getPaginationMeta } = require('../utils/helpers');
 const { tenantWhere, resolveAdminId } = require('../utils/tenant');
@@ -9,9 +11,13 @@ class CategoryService {
     const { search } = query;
     const where = {};
     if (options.tenantId) where.adminId = options.tenantId;
-    if (options.publicOnly) where.isActive = true;
+    if (options.publicOnly) {
+      where.isActive = true;
+    } else if (query.isActive !== undefined) {
+      where.isActive = query.isActive === 'true' || query.isActive === true;
+    }
     if (search) {
-      where.name = { [require('sequelize').Op.iLike]: `%${search}%` };
+      where.name = { [Op.iLike]: `%${search}%` };
     }
     const result = await categoryRepository.findAll({
       where,
@@ -19,7 +25,42 @@ class CategoryService {
       offset,
       order: [['sortOrder', 'ASC']],
     });
-    return { categories: result.rows, pagination: getPaginationMeta(result.count, page, limit) };
+
+    const categories = result.rows.map(function (category) {
+      return category.toJSON ? category.toJSON() : { ...category };
+    });
+    const categoryIds = categories.map(function (category) { return category.id; });
+
+    if (categoryIds.length > 0) {
+      const productWhere = {
+        categoryId: { [Op.in]: categoryIds },
+        status: 'published',
+      };
+      if (options.tenantId) productWhere.adminId = options.tenantId;
+
+      const counts = await Product.findAll({
+        where: productWhere,
+        attributes: [
+          'categoryId',
+          [sequelize.fn('COUNT', sequelize.col('id')), 'productCount'],
+        ],
+        group: ['categoryId'],
+        raw: true,
+      });
+      const countMap = {};
+      counts.forEach(function (row) {
+        countMap[row.categoryId] = Number(row.productCount) || 0;
+      });
+      categories.forEach(function (category) {
+        category.productCount = countMap[category.id] || 0;
+      });
+    } else {
+      categories.forEach(function (category) {
+        category.productCount = 0;
+      });
+    }
+
+    return { categories, pagination: getPaginationMeta(result.count, page, limit) };
   }
 
   async getTree(tenantId, publicOnly) {

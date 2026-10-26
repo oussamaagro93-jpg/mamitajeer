@@ -6,7 +6,6 @@ const {
   OrderTimeline,
   User,
   Product,
-  DeliveryCompany,
   Commune,
   Coupon,
 } = require('../models');
@@ -140,8 +139,8 @@ class OrderService {
     }
     subtotal = roundMoney(subtotal);
 
-    if (!data.deliveryCompanyId || !data.wilayaId || !data.communeId || !data.deliveryType) {
-      throw new ApiError(400, 'Delivery company, wilaya, commune and delivery type are required');
+    if (!data.wilayaId || !data.communeId || !data.deliveryType) {
+      throw new ApiError(400, 'Wilaya, commune and delivery type are required');
     }
     if (['home_delivery', 'desk_delivery'].indexOf(data.deliveryType) === -1) {
       throw new ApiError(400, 'Invalid delivery type');
@@ -156,16 +155,18 @@ class OrderService {
     const deliveryAddress = data.deliveryAddress || data.guestAddress;
     if (!deliveryAddress) throw new ApiError(400, 'Delivery address is required');
 
-    const company = await DeliveryCompany.findOne({
-      where: { id: data.deliveryCompanyId, adminId, active: true },
+    // One shipment for the order: use the highest valid delivery price among
+    // the companies assigned to the selected products.
+    const deliverySelection = await shippingRateService.calculateBestPriceForProducts({
+      products: products,
+      fallbackCompanyId: data.deliveryCompanyId,
+      wilayaId: data.wilayaId,
+      communeId: data.communeId,
+      deliveryType: data.deliveryType,
+      adminId: adminId,
     });
-    if (!company) throw new ApiError(400, 'Delivery company is not available for this store');
-    const quote = await shippingRateService.calculatePrice(
-      data.deliveryCompanyId,
-      data.wilayaId,
-      data.communeId,
-      data.deliveryType,
-    );
+    const effectiveDeliveryCompanyId = deliverySelection.deliveryCompanyId;
+    const quote = deliverySelection.quote;
 
     const paymentMethod = paymentService.assertSupported(data.paymentMethod || 'cod');
 
@@ -240,7 +241,7 @@ class OrderService {
               paymentMethod,
               shippingMethod: quote.deliveryCompanyName + ' - ' + (data.deliveryType === 'home_delivery' ? 'Home Delivery' : 'Stop Desk'),
               notes: data.notes || null,
-              deliveryCompanyId: data.deliveryCompanyId,
+              deliveryCompanyId: effectiveDeliveryCompanyId,
               deliveryCompanyName: quote.deliveryCompanyName,
               deliveryType: data.deliveryType,
               wilayaId: data.wilayaId,

@@ -9,14 +9,17 @@ const { tenantWhere, resolveAdminId } = require('../utils/tenant');
 
 class ProductService {
   async generateUniqueSlug(name, excludeId) {
-    const baseSlug = createSlug(name);
+    // Product slugs are globally unique even for soft-deleted rows. Check with
+    // paranoid: false so a deleted product's slug is never reused, otherwise
+    // the insert fails against the database's unique slug index.
+    const baseSlug = createSlug(name) || 'product';
     let slug = baseSlug;
     let counter = 1;
 
     while (true) {
       const where = { slug };
       if (excludeId) where.id = { [Op.ne]: excludeId };
-      const existing = await Product.findOne({ where });
+      const existing = await Product.findOne({ where, paranoid: false });
       if (!existing) break;
       slug = `${baseSlug}-${counter}`;
       counter++;
@@ -27,7 +30,7 @@ class ProductService {
 
   async findAll(query, options = {}) {
     const { page, limit, offset } = paginate(query);
-    const { search, categoryId, brandId, status, minPrice, maxPrice, sortBy, sortOrder, isFeatured } = query;
+    const { search, categoryId, brandId, status, minPrice, maxPrice, sortBy, sortOrder, isFeatured, ids, available } = query;
 
     const where = {};
     if (options.tenantId) where.adminId = options.tenantId;
@@ -39,10 +42,25 @@ class ProductService {
     }
     if (categoryId) where.categoryId = categoryId;
     if (brandId) where.brandId = brandId;
+    if (ids !== undefined && ids !== null && ids !== '') {
+      const idList = (Array.isArray(ids) ? ids : String(ids).split(','))
+        .map(function (value) { return parseInt(value, 10); })
+        .filter(function (value) { return Number.isInteger(value) && value > 0; });
+      if (idList.length === 0) {
+        return {
+          products: [],
+          pagination: getPaginationMeta(0, page, limit),
+        };
+      }
+      where.id = { [Op.in]: Array.from(new Set(idList)) };
+    }
     if (options.publicOnly) {
       where.status = 'published';
     } else if (status) {
       where.status = status;
+    }
+    if (available === 'true' || available === true) {
+      where.quantity = { [Op.gt]: 0 };
     }
     if (isFeatured !== undefined) where.isFeatured = isFeatured === 'true';
     if (minPrice || maxPrice) {
@@ -162,7 +180,63 @@ class ProductService {
     store.whatsapp = store.whatsapp || null;
     store.email = store.email || (admin && admin.email) || null;
     data.store = store;
+
+    // Storefront related products are derived from the product's category so
+    // they always reflect the live catalogue. Only published, in-stock items
+    // from the same store are returned, and the current product is excluded.
+    data.relatedProducts = await this.findCategoryRelatedProducts(product);
     return data;
+  }
+
+  async findCategoryRelatedProducts(product, limit = 8) {
+    if (!product || !product.categoryId) return [];
+
+    const related = await Product.findAll({
+      where: {
+        id: { [Op.ne]: product.id },
+        categoryId: product.categoryId,
+        adminId: product.adminId,
+        status: 'published',
+        quantity: { [Op.gt]: 0 },
+      },
+      attributes: [
+        'id',
+        'name',
+        'slug',
+        'price',
+        'comparePrice',
+        'image',
+        'quantity',
+        'categoryId',
+        'adminId',
+      ],
+      include: [
+        {
+          model: ProductImage,
+          as: 'images',
+          where: { isPrimary: true },
+          required: false,
+          limit: 1,
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+      limit,
+    });
+
+    return related.map(function (item) {
+      return {
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        price: item.price,
+        comparePrice: item.comparePrice,
+        image: item.image || (item.images && item.images.length > 0 ? item.images[0].url : null),
+        images: item.images || [],
+        quantity: item.quantity,
+        categoryId: item.categoryId,
+        adminId: item.adminId,
+      };
+    });
   }
 
   async create(data, uploadInfo, tenantId) {

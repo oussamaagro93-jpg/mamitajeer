@@ -33,7 +33,7 @@ router.post(
     body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
     body('items.*.productId').isInt({ min: 1 }).withMessage('Valid productId is required'),
     body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
-    body('deliveryCompanyId').isInt({ min: 1 }).withMessage('Valid delivery company is required'),
+    body('deliveryCompanyId').optional({ checkFalsy: true, nullable: true }).isInt({ min: 1 }).withMessage('Valid delivery company is required'),
     body('wilayaId').isInt({ min: 1 }).withMessage('Valid wilaya is required'),
     body('communeId').isInt({ min: 1 }).withMessage('Valid commune is required'),
     body('deliveryType')

@@ -211,12 +211,92 @@ class ShippingRateService {
     };
   }
 
-  async getAvailableOptions(wilayaId, communeId, deliveryCompanyId, adminId) {
+  async calculateBestPriceForProducts({
+    products,
+    fallbackCompanyId,
+    wilayaId,
+    communeId,
+    deliveryType,
+    adminId,
+  }) {
+    const assignedCompanyIds = Array.from(new Set(
+      (products || [])
+        .map((product) => parseInt(product.deliveryCompanyId, 10))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    ));
+
+    let companyIds = assignedCompanyIds;
+    if (companyIds.length === 0 && fallbackCompanyId) {
+      const fallback = parseInt(fallbackCompanyId, 10);
+      if (!Number.isInteger(fallback) || fallback < 1) {
+        throw new ApiError(400, 'Delivery company is required');
+      }
+      companyIds = [fallback];
+    }
+
+    if (companyIds.length === 0) {
+      throw new ApiError(400, 'Delivery company is required');
+    }
+
+    const where = {
+      id: { [Op.in]: companyIds },
+      active: true,
+    };
+    if (adminId) where.adminId = adminId;
+
+    const companies = await DeliveryCompany.findAll({ where });
+    if (companies.length === 0) {
+      throw new ApiError(400, 'Delivery company is not available for this store');
+    }
+
+    const quotes = [];
+    for (const company of companies) {
+      try {
+        const quote = await this.calculatePrice(
+          company.id,
+          wilayaId,
+          communeId || null,
+          deliveryType,
+        );
+        quotes.push({
+          deliveryCompanyId: company.id,
+          company,
+          quote,
+        });
+      } catch (error) {
+        // A product-assigned company may not have a rate for this destination.
+        // Other assigned companies can still be used for the combined order.
+      }
+    }
+
+    if (quotes.length === 0) {
+      throw new ApiError(400, 'No shipping rate available for the selected destination');
+    }
+
+    // One delivery fee for the whole order: pick the most expensive valid
+    // quote first, then use the company id as a deterministic tie-breaker.
+    quotes.sort(function (a, b) {
+      return Number(b.quote.price) - Number(a.quote.price)
+        || a.deliveryCompanyId - b.deliveryCompanyId;
+    });
+
+    return {
+      ...quotes[0],
+      quotes,
+    };
+  }
+
+  async getAvailableOptions(wilayaId, communeId, deliveryCompanyId, adminId, companyIds) {
     const wilaya = await Wilaya.findByPk(wilayaId);
     if (!wilaya || !wilaya.active) throw new ApiError(400, 'Wilaya not found or inactive');
 
     const where = { active: true };
-    if (deliveryCompanyId) where.id = deliveryCompanyId;
+    if (deliveryCompanyId) {
+      where.id = deliveryCompanyId;
+    } else if (Array.isArray(companyIds)) {
+      if (companyIds.length === 0) return [];
+      where.id = { [Op.in]: companyIds };
+    }
     if (adminId) where.adminId = adminId;
 
     const companies = await DeliveryCompany.findAll({

@@ -1,4 +1,4 @@
-const { Order, OrderItem, OrderTimeline, Product, ProductImage, Wilaya, Commune, DeliveryCompany } = require('../models');
+const { Order, OrderItem, OrderTimeline, Product, ProductImage, Wilaya, Commune } = require('../models');
 const { sequelize } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { roundMoney, generateOrderNumber, isOrderNumberConflict } = require('../utils/helpers');
@@ -56,6 +56,9 @@ class GuestCheckoutService {
       include: [
         { model: ProductImage, as: 'images', where: { isPrimary: true }, required: false, limit: 1 },
       ],
+      // Deterministic order keeps the delivery-company fallback identical to
+      // what the storefront shows for a multi-item cart.
+      order: [['id', 'ASC']],
     });
 
     if (products.length !== productIds.length) {
@@ -112,32 +115,22 @@ class GuestCheckoutService {
     }
     subtotal = roundMoney(subtotal);
 
-    // The delivery company is chosen on the product. Fall back to the
-    // client-provided company only for legacy products without one.
-    const productDeliveryCompanyId = products
-      .map(function (p) { return p.deliveryCompanyId; })
-      .find(function (id) { return !!id; }) || null;
-    const effectiveDeliveryCompanyId = productDeliveryCompanyId || deliveryCompanyId;
     const effectiveDeliveryType = deliveryType || 'home_delivery';
 
-    if (!effectiveDeliveryCompanyId) {
-      throw new ApiError(400, 'Delivery company is required');
-    }
-
-    const deliveryCompany = await DeliveryCompany.findOne({
-      where: { id: effectiveDeliveryCompanyId, adminId: orderAdminId, active: true },
+    // One shipment for the whole order: evaluate every delivery company
+    // assigned to an item and use the highest valid delivery price. The
+    // client-provided company is only a fallback for legacy products that do
+    // not have an assigned company.
+    const deliverySelection = await shippingRateService.calculateBestPriceForProducts({
+      products: products,
+      fallbackCompanyId: deliveryCompanyId,
+      wilayaId: wilayaId,
+      communeId: communeId,
+      deliveryType: effectiveDeliveryType,
+      adminId: orderAdminId,
     });
-    if (!deliveryCompany) {
-      throw new ApiError(400, 'Delivery company is not available for this store');
-    }
-
-    // Backend-calculated shipping price (never trust the frontend)
-    const quote = await shippingRateService.calculatePrice(
-      effectiveDeliveryCompanyId,
-      wilayaId,
-      communeId,
-      effectiveDeliveryType,
-    );
+    const effectiveDeliveryCompanyId = deliverySelection.deliveryCompanyId;
+    const quote = deliverySelection.quote;
 
     const normalizedGuestPhone = couponService.normalizePhone(guestPhone) || guestPhone;
 
@@ -293,6 +286,7 @@ class GuestCheckoutService {
       guestWilaya: result.guestWilaya,
       guestCity: result.guestCity,
       guestAddress: result.guestAddress,
+      deliveryCompanyId: result.deliveryCompanyId,
       deliveryCompanyName: result.deliveryCompanyName,
       deliveryType: result.deliveryType,
       wilayaName: result.wilayaName,
