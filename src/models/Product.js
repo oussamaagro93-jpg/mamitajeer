@@ -39,6 +39,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+      couponId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       adminId: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -155,6 +159,7 @@ module.exports = (sequelize, DataTypes) => {
     Product.belongsTo(models.Category, { foreignKey: 'categoryId', as: 'category' });
     Product.belongsTo(models.Brand, { foreignKey: 'brandId', as: 'brand' });
     Product.belongsTo(models.DeliveryCompany, { foreignKey: 'deliveryCompanyId', as: 'deliveryCompany' });
+    Product.belongsTo(models.Coupon, { foreignKey: 'couponId', as: 'coupon' });
     Product.hasMany(models.ProductImage, { foreignKey: 'productId', as: 'images', order: [['sortOrder', 'ASC']] });
     Product.hasMany(models.ProductVariant, { foreignKey: 'productId', as: 'variants' });
     Product.hasMany(models.Review, { foreignKey: 'productId', as: 'reviews' });

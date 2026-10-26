@@ -2,8 +2,9 @@ const { Op } = require('sequelize');
 const productRepository = require('../repositories/ProductRepository');
 const ApiError = require('../utils/ApiError');
 const { createSlug, generateSKU, generateBarcode, paginate, getPaginationMeta } = require('../utils/helpers');
-const { ProductImage, ProductVariant, Category, Brand, DeliveryCompany, Product, RelatedProduct } = require('../models');
+const { ProductImage, ProductVariant, Category, Brand, DeliveryCompany, Coupon, Product, RelatedProduct, User } = require('../models');
 const cloudinaryService = require('./cloudinaryService');
+const storeProfileService = require('./StoreProfileService');
 const { tenantWhere, resolveAdminId } = require('../utils/tenant');
 
 class ProductService {
@@ -76,6 +77,23 @@ class ProductService {
       include: [
         { model: Category, as: 'category' },
         { model: Brand, as: 'brand' },
+        {
+          model: Coupon,
+          as: 'coupon',
+          required: false,
+          attributes: [
+            'id',
+            'code',
+            'type',
+            'value',
+            'minOrderAmount',
+            'maxDiscountAmount',
+            'description',
+            'isActive',
+            'startDate',
+            'endDate',
+          ],
+        },
         { model: ProductImage, as: 'images', order: [['sortOrder', 'ASC']] },
         { model: ProductVariant, as: 'variants' },
         {
@@ -110,6 +128,10 @@ class ProductService {
       const company = await DeliveryCompany.findOne({ where: { id: data.deliveryCompanyId, adminId } });
       if (!company) throw new ApiError(400, 'Delivery company does not belong to this admin');
     }
+    if (data.couponId) {
+      const coupon = await Coupon.findOne({ where: { id: data.couponId, adminId } });
+      if (!coupon) throw new ApiError(400, 'Coupon does not belong to this admin');
+    }
   }
 
   async findBySlug(slug) {
@@ -124,7 +146,24 @@ class ProductService {
     });
     if (!product) throw new ApiError(404, 'Product not found');
     if (product.status !== 'published') throw new ApiError(404, 'Product not found');
-    return product;
+
+    const storeProfile = await storeProfileService.findByAdminId(product.adminId);
+    const admin = await User.findByPk(product.adminId, {
+      attributes: ['id', 'firstName', 'lastName', 'phone', 'email'],
+    });
+
+    const data = product.toJSON();
+    const store = storeProfileService.toPublic(storeProfile) || {};
+    if (admin) {
+      // Product contact details always come from the admin account that owns
+      // the product. Store-profile contact fields are only a fallback for
+      // legacy products without an admin account.
+      store.phone = admin.phone || null;
+      store.whatsapp = admin.phone || null;
+      store.email = admin.email || null;
+    }
+    data.store = store;
+    return data;
   }
 
   async create(data, uploadInfo, tenantId) {
@@ -137,6 +176,7 @@ class ProductService {
     }
 
     if (data.deliveryCompanyId === '') data.deliveryCompanyId = null;
+    if (data.couponId === '') data.couponId = null;
 
     // Resolve the owning tenant. Admins/managers/employees are scoped by the
     // middleware; superadmins can provide adminId or inherit it from a
@@ -153,6 +193,10 @@ class ProductService {
     if (!adminId && data.deliveryCompanyId) {
       const company = await DeliveryCompany.findOne({ where: { id: data.deliveryCompanyId } });
       if (company) adminId = company.adminId;
+    }
+    if (!adminId && data.couponId) {
+      const coupon = await Coupon.findOne({ where: { id: data.couponId } });
+      if (coupon) adminId = coupon.adminId;
     }
     if (!adminId) adminId = await resolveAdminId(null);
     if (!adminId) throw new ApiError(400, 'An admin account is required to create a product');
@@ -217,6 +261,7 @@ class ProductService {
     }
 
     if (data.deliveryCompanyId === '') data.deliveryCompanyId = null;
+    if (data.couponId === '') data.couponId = null;
     delete data.adminId;
 
     await this.validateOwnedReferences(data, product.adminId);

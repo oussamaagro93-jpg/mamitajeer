@@ -10,6 +10,7 @@ router.use('/customers', require('./customer'));
 router.use('/inventory', require('./inventory'));
 router.use('/coupons', require('./coupon'));
 router.use('/users', require('./user'));
+router.use('/store-profile', require('./storeProfile'));
 router.use('/dashboard', require('./dashboard'));
 router.use('/checkout', require('./checkout'));
 router.use('/delivery-companies', require('./delivery-companies'));

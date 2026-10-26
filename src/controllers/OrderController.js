@@ -32,9 +32,44 @@ class OrderController {
 
   async updateStatus(req, res, next) {
     try {
-      const { status, description } = req.body;
-      const order = await orderService.updateStatus(req.params.id, status, req.userId, description, req.tenantAdminId);
+      const { status, description, reason } = req.body;
+      const order = await orderService.updateStatus(
+        req.params.id,
+        status,
+        req.userId,
+        description,
+        reason,
+        req.tenantAdminId,
+      );
       sendSuccess(res, { order }, 'Order status updated');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updatePayment(req, res, next) {
+    try {
+      const order = await orderService.updatePayment(
+        req.params.id,
+        req.body,
+        req.userId,
+        req.tenantAdminId,
+      );
+      sendSuccess(res, { order }, 'Order payment updated');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateTracking(req, res, next) {
+    try {
+      const order = await orderService.updateTracking(
+        req.params.id,
+        req.body.trackingNumber,
+        req.userId,
+        req.tenantAdminId,
+      );
+      sendSuccess(res, { order }, 'Order tracking updated');
     } catch (error) {
       next(error);
     }

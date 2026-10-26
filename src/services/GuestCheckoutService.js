@@ -1,7 +1,7 @@
 const { Order, OrderItem, OrderTimeline, Product, ProductImage, Wilaya, Commune, DeliveryCompany } = require('../models');
 const { sequelize } = require('../models');
 const ApiError = require('../utils/ApiError');
-const { roundMoney } = require('../utils/helpers');
+const { roundMoney, generateOrderNumber, isOrderNumberConflict } = require('../utils/helpers');
 const shippingRateService = require('./ShippingRateService');
 const couponService = require('./CouponService');
 const inventoryService = require('./InventoryService');
@@ -35,7 +35,22 @@ class GuestCheckoutService {
     const wilayaName = guestWilaya || wilaya.nameFr;
     const cityName = guestCity || commune.nameFr;
 
-    const productIds = items.map(function (i) { return i.productId; });
+    // Aggregate quantities per product so duplicate cart lines cannot bypass
+    // the stock check or produce an incorrect products-length comparison.
+    var requestedQuantities = new Map();
+    items.forEach(function (item) {
+      var productId = parseInt(item.productId, 10);
+      var quantity = parseInt(item.quantity, 10);
+      if (!Number.isInteger(productId) || productId < 1) {
+        throw new ApiError(400, 'Invalid product');
+      }
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        throw new ApiError(400, 'Invalid item quantity');
+      }
+      requestedQuantities.set(productId, (requestedQuantities.get(productId) || 0) + quantity);
+    });
+    const productIds = Array.from(requestedQuantities.keys());
+
     const products = await Product.findAll({
       where: { id: productIds, status: 'published' },
       include: [
@@ -64,17 +79,16 @@ class GuestCheckoutService {
     const orderItems = [];
     const couponItems = [];
 
-    for (const item of items) {
-      const product = productMap[item.productId];
+    for (const [productId, quantity] of requestedQuantities) {
+      const product = productMap[productId];
       if (!product) {
-        throw new ApiError(400, 'Product ' + item.productId + ' not found');
+        throw new ApiError(400, 'Product ' + productId + ' not found');
       }
-      if (product.quantity < item.quantity) {
+      if (Number(product.quantity) < quantity) {
         throw new ApiError(400, 'Insufficient stock for ' + product.name);
       }
 
       const unitPrice = roundMoney(product.price);
-      const quantity = parseInt(item.quantity, 10) || 1;
       const totalPrice = roundMoney(unitPrice * quantity);
 
       subtotal += totalPrice;
@@ -127,14 +141,10 @@ class GuestCheckoutService {
 
     const normalizedGuestPhone = couponService.normalizePhone(guestPhone) || guestPhone;
 
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const rand = Math.floor(Math.random() * 99999).toString().padStart(5, '0');
-    const orderNumber = 'GST-' + year + month + day + '-' + rand;
-
-    const transactionResult = await sequelize.transaction(async function (t) {
+    let transactionResult = null;
+    for (let attempt = 0; attempt < 3 && !transactionResult; attempt += 1) {
+      try {
+        transactionResult = await sequelize.transaction(async function (t) {
       // Lock product rows so two concurrent checkouts cannot both pass the
       // earlier stock check and oversell the same item.
       const lockedProducts = await Product.findAll({
@@ -145,9 +155,9 @@ class GuestCheckoutService {
       });
       const lockedMap = {};
       lockedProducts.forEach(function (product) { lockedMap[product.id] = product; });
-      for (const item of items) {
-        const product = lockedMap[item.productId];
-        if (!product || Number(product.quantity) < Number(item.quantity)) {
+      for (const [productId, quantity] of requestedQuantities) {
+        const product = lockedMap[productId];
+        if (!product || Number(product.quantity) < quantity) {
           throw new ApiError(400, 'Insufficient stock for ' + (product ? product.name : 'one or more products'));
         }
       }
@@ -175,7 +185,7 @@ class GuestCheckoutService {
 
       const createdOrder = await Order.create(
         {
-          orderNumber: orderNumber,
+          orderNumber: generateOrderNumber('GST'),
           adminId: orderAdminId,
           email: '',
           subtotal: subtotal,
@@ -231,10 +241,10 @@ class GuestCheckoutService {
         { transaction: t },
       );
 
-      for (const item of items) {
+      for (const [productId, quantity] of requestedQuantities) {
         await Product.decrement('quantity', {
-          by: item.quantity,
-          where: { id: item.productId, adminId: orderAdminId },
+          by: quantity,
+          where: { id: productId, adminId: orderAdminId },
           transaction: t,
         });
       }
@@ -248,8 +258,16 @@ class GuestCheckoutService {
         discountAmount: discountAmount,
         total: total,
       };
-    });
+        });
+      } catch (error) {
+        if (attempt < 2 && isOrderNumberConflict(error)) continue;
+        throw error;
+      }
+    }
 
+    if (!transactionResult) {
+      throw new ApiError(500, 'Could not generate a unique order number');
+    }
     const order = transactionResult.order;
     const result = await Order.findByPk(order.id, {
       include: [

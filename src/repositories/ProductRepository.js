@@ -1,5 +1,5 @@
 const BaseRepository = require('./BaseRepository');
-const { Product, ProductImage, ProductVariant, Category, Brand, DeliveryCompany, RelatedProduct } = require('../models');
+const { Product, ProductImage, ProductVariant, Category, Brand, DeliveryCompany, Coupon, RelatedProduct } = require('../models');
 
 class ProductRepository extends BaseRepository {
   constructor() {
@@ -19,6 +19,23 @@ class ProductRepository extends BaseRepository {
         { model: Category, as: 'category' },
         { model: Brand, as: 'brand' },
         { model: DeliveryCompany, as: 'deliveryCompany', attributes: ['id', 'name', 'code', 'active'] },
+        {
+          model: Coupon,
+          as: 'coupon',
+          required: false,
+          attributes: [
+            'id',
+            'code',
+            'type',
+            'value',
+            'minOrderAmount',
+            'maxDiscountAmount',
+            'description',
+            'isActive',
+            'startDate',
+            'endDate',
+          ],
+        },
         { model: ProductImage, as: 'images' },
         { model: ProductVariant, as: 'variants' },
         {

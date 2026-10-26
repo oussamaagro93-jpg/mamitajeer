@@ -6,10 +6,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "migrate": "npx sequelize-cli db:migrate",
+    "migrate": "node -e \"const { sequelize } = require('./src/models'); sequelize.sync().then(() => { console.log('Tables synced'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); });\" && npx sequelize-cli db:migrate",
     "migrate:undo": "npx sequelize-cli db:migrate:undo",
     "seed": "npx sequelize-cli db:seed:all",
-    "seed:undo": "npx sequelize-cli db:seed:undo:all"
+    "seed:undo": "npx sequelize-cli db:seed:undo:all",
+    "test": "node --test"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

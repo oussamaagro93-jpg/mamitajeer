@@ -27,6 +27,7 @@ router.post(
   [
     body('name').trim().notEmpty().withMessage('Product name is required'),
     body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
+    body('couponId').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('Invalid coupon'),
   ],
   validate,
   productController.create,
@@ -36,6 +37,10 @@ router.put(
   '/:id',
   staff,
   requirePermission(PERMISSIONS.PRODUCTS_UPDATE),
+  [
+    body('couponId').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('Invalid coupon'),
+  ],
+  validate,
   productController.update,
 );
 

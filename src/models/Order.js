@@ -29,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
       total: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
       paidAmount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
       dueAmount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
-      currency: { type: DataTypes.STRING(3), defaultValue: 'USD' },
+      currency: { type: DataTypes.STRING(3), defaultValue: 'DZD' },
       paymentMethod: { type: DataTypes.STRING(100), allowNull: true },
       paymentReference: { type: DataTypes.STRING(255), allowNull: true },
       shippingMethod: { type: DataTypes.STRING(200), allowNull: true },
